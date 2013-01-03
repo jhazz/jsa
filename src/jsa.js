@@ -86,7 +86,7 @@ var jsa;
 	* @param {Function} classDef.inherits
 	* @param {Function} classDef.constructor
 	* @return {Object}
-	* ВНИМАНИЕ! define определяет как модули так и классы
+	* Р’РќРРњРђРќРР•! define РѕРїСЂРµРґРµР»СЏРµС‚ РєР°Рє РјРѕРґСѓР»Рё С‚Р°Рє Рё РєР»Р°СЃСЃС‹
 	*/
 	define : function (classDef) {
 		if(!classDef.constructor) {
@@ -234,7 +234,7 @@ var jsa;
 		}
 		act.stage = stage;
 		
-		// Действия делятся на те, которые выполняются в конце (after) и остальные в обычном временной линии
+		// Р”РµР№СЃС‚РІРёСЏ РґРµР»СЏС‚СЃСЏ РЅР° С‚Рµ, РєРѕС‚РѕСЂС‹Рµ РІС‹РїРѕР»РЅСЏСЋС‚СЃСЏ РІ РєРѕРЅС†Рµ (after) Рё РѕСЃС‚Р°Р»СЊРЅС‹Рµ РІ РѕР±С‹С‡РЅРѕРј РІСЂРµРјРµРЅРЅРѕР№ Р»РёРЅРёРё
 		if(act.aidAfter){
 			stage.timelineAfter[act.aidAfter] = act;
 		}else{
@@ -264,7 +264,7 @@ var jsa;
 			targetHtmlElement: targetHtmlElement || jsa.doc, 
 			timerInterval : timerInterval || jsa.STAGE_TIMER_INTERVAL,
 			timeline : {},
-			timelineAfter:{} // для вызова различных обновлений в конце отрисовки кадра
+			timelineAfter:{} // РґР»СЏ РІС‹Р·РѕРІР° СЂР°Р·Р»РёС‡РЅС‹С… РѕР±РЅРѕРІР»РµРЅРёР№ РІ РєРѕРЅС†Рµ РѕС‚СЂРёСЃРѕРІРєРё РєР°РґСЂР°
 		};
 	},
 
