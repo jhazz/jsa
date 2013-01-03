@@ -13,24 +13,24 @@
 
 <body style="margin:0; padding:0;">
 
-<div id='topmenu' class='topmenu'><a href='javascript:;' onclick='showSettings()'>Настройки</a> &nbsp;
-<a href='javascript:;' onclick='FX.loadAllFolders()'>(1) Прочитать списки файлов</a>
+<div id='topmenu' class='topmenu'><a href='javascript:;' onclick='showSettings()'>РќР°СЃС‚СЂРѕР№РєРё</a> &nbsp;
+<a href='javascript:;' onclick='FX.loadAllFolders()'>(1) РџСЂРѕС‡РёС‚Р°С‚СЊ СЃРїРёСЃРєРё С„Р°Р№Р»РѕРІ</a>
 </div>
 
 <div id='panelSettings' style='display:none; z-index:100;position:absolute; top:20px; left:20px;background-color:#f0f0f0'>
 <table cellpadding=5 >
 	<tr valign='top'>
-		<td>Флэш папка в которую копируются файлы с сервера (FlashInbox):
+		<td>Р¤Р»СЌС€ РїР°РїРєР° РІ РєРѕС‚РѕСЂСѓСЋ РєРѕРїРёСЂСѓСЋС‚СЃСЏ С„Р°Р№Р»С‹ СЃ СЃРµСЂРІРµСЂР° (FlashInbox):
 		<br/><input type="text" size="40" id="pathFlashInbox" value="C:/etc/progs/hta/flash/inbox"/></td>
 		<td>&lt;&lt;</td>
-		<td>Серверная папка из которой копируются файлы (ServerOutbox):
+		<td>РЎРµСЂРІРµСЂРЅР°СЏ РїР°РїРєР° РёР· РєРѕС‚РѕСЂРѕР№ РєРѕРїРёСЂСѓСЋС‚СЃСЏ С„Р°Р№Р»С‹ (ServerOutbox):
 		<br/><input type="text" size="40" id="pathServerOutbox" value="C:/etc/progs/hta/server/outbox"/></td>
 	</tr>
 	<tr valign='top'>
-		<td>Флэш папка из которой получаем новые файлы(FlashOutbox):
+		<td>Р¤Р»СЌС€ РїР°РїРєР° РёР· РєРѕС‚РѕСЂРѕР№ РїРѕР»СѓС‡Р°РµРј РЅРѕРІС‹Рµ С„Р°Р№Р»С‹(FlashOutbox):
 		<br/><input type="text" size="40" id="pathFlashOutbox" value="C:/etc/progs/hta/flash/outbox"/></td>
 		<td>&gt;&gt;</td>
-		<td>Серверная папка в которую передаем файлы с флэшки(ServerInbox):
+		<td>РЎРµСЂРІРµСЂРЅР°СЏ РїР°РїРєР° РІ РєРѕС‚РѕСЂСѓСЋ РїРµСЂРµРґР°РµРј С„Р°Р№Р»С‹ СЃ С„Р»СЌС€РєРё(ServerInbox):
 		<br/><input type="text" size="40" id="pathServerInbox" value="C:/etc/progs/hta/server/inbox"/></td>
 	</tr>
 </table>
@@ -90,10 +90,10 @@ var FX={
 oFS:new ActiveXObject("Scripting.FileSystemObject"),
 init:function(){
 	var attrs={style:{position:'absolute',left:20,top:'20px',width:400,height:200,}},tplFolder="<b>this is {name} and anchor {anchor(11)}}</b>";
-	FX.flashInbox=new jsa.Control({name:'Inbox папка на флэшке'});
-/*	FX.flashOutbox=new jsa.Control({name:'Outbox папка на флэшке'});
-	FX.serverInbox=new jsa.Control({name:'Inbox папка на сервере'});
-	FX.serverOutbox=new jsa.Control({name:'Outbox папка на сервере'});*/
+	FX.flashInbox=new jsa.Control({name:'Inbox РїР°РїРєР° РЅР° С„Р»СЌС€РєРµ'});
+/*	FX.flashOutbox=new jsa.Control({name:'Outbox РїР°РїРєР° РЅР° С„Р»СЌС€РєРµ'});
+	FX.serverInbox=new jsa.Control({name:'Inbox РїР°РїРєР° РЅР° СЃРµСЂРІРµСЂРµ'});
+	FX.serverOutbox=new jsa.Control({name:'Outbox РїР°РїРєР° РЅР° СЃРµСЂРІРµСЂРµ'});*/
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
 	FX.dmodel=new jsa.GridDataProvider();
@@ -162,7 +162,7 @@ initParamsFromInput:function(){
 
 
 /** 
-Перезагружает все списки в панели
+РџРµСЂРµР·Р°РіСЂСѓР¶Р°РµС‚ РІСЃРµ СЃРїРёСЃРєРё РІ РїР°РЅРµР»Рё
 */
 loadDirList:function(aFolderData,isRecursive){
 	aFolderData.items=[];
@@ -175,10 +175,10 @@ loadDirList:function(aFolderData,isRecursive){
 	FX.recursiveFolder (oFld,'',
 		function (item,subFolder){
 			aFolderData.items.push({t:1,n:item.Name,sp:subFolder,p:item.Path});
-			//FX.putText(item.Name+ "/",aFolderData); //Показать папки
+			//FX.putText(item.Name+ "/",aFolderData); //РџРѕРєР°Р·Р°С‚СЊ РїР°РїРєРё
 		},
 		function (item,subFolder){
-			//FX.putText("file:"+ item.Name,aFolderData); //Показать файлы
+			//FX.putText("file:"+ item.Name,aFolderData); //РџРѕРєР°Р·Р°С‚СЊ С„Р°Р№Р»С‹
 			aFolderData.items.push({t:2,n:item.Name,sp:subFolder,p:item.Path});
 		},
 		true //isRecursive
@@ -195,9 +195,9 @@ recursiveFolder:function(oFld,subFolder,callbackFolder,callbackFile,isRecursive)
 		var item=enFolders.item();
 		callbackFolder(item,subFolder);
 		if(isRecursive){
-			var inFolders = new Enumerator(oFld.SubFolders); //Снова коллекция папок
+			var inFolders = new Enumerator(oFld.SubFolders); //РЎРЅРѕРІР° РєРѕР»Р»РµРєС†РёСЏ РїР°РїРѕРє
 			var sf=inFolders.item();
-			arguments.callee(sf,"/"+sf.Name,callbackFolder,callbackFile,isRecursive); //Рекурсия в подпапку
+			arguments.callee(sf,"/"+sf.Name,callbackFolder,callbackFile,isRecursive); //Р РµРєСѓСЂСЃРёСЏ РІ РїРѕРґРїР°РїРєСѓ
 		}
 	}
   
