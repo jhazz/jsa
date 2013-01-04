@@ -19,12 +19,13 @@ var CREATE_CONSOLE = true;
 /**
  * @define {boolean} Debug mode keep debug messages in code
  */
-var DEBUG = true;
+var DEBUG = 1;
 
 var ACTION_JSA_CONSOLE_REGENERATE = 1;
 var ACTION_JSA_CONSOLE_REARRANGE = 2;
+var jsa,jsf;
 
-var jsa;
+
 (function() {
 	jsa={
 	/** @type {Object} */
@@ -37,31 +38,30 @@ var jsa;
 	stages : [],
 	/** @type Array.<Function>*/
 	actionByCode: [],
-		
+
 	/** @type {Object} */
 	actionByName:{},
-		
+
 	/** @type {number|null} */
 	time:0,
-		
+
 	/** @type {Object|integer} */
 	isAppWindow:1,
-		
-	/** @type {Window} */
+    /** @type {Window} */
 	win:window,
-		
+
 	/** @type {Document} */
 	doc:document,
-		
+
 	/** @type {Object} dependencies */
 	deps: {},
-		
+
 	/** @type Array.<Object> registered IFrames by registerIFrame */
 	frames:{},
-		
+
 	/** @type {Object}*/
 	actions:{},
-		
+
 	/** @type {string} Path to the library*/
 	LIB_URL:"src/",
 
@@ -72,7 +72,7 @@ var jsa;
 
 	/** @type {number} uid */
 	lastUID: 0,
-		
+
 	nullFunction: function () {},
 
 	name:'jsa',
@@ -80,7 +80,7 @@ var jsa;
 	subscribers:{},
 	/**
 	* Executes on class ready after load or inline
-	* @param {Object} classDef Class object 
+	* @param {Object} classDef Class object
 	* @param {String} classDef.clsName class name
 	* @param {Array} classDef.deps array of module urls/names the class depends on
 	* @param {Function} classDef.inherits
@@ -103,7 +103,7 @@ var jsa;
 		}
 		return classDef.constructor;
 	},
-			
+
 	/**
 	* @param {!Object} childConstructor that parentConstructor prototype applying to
 	* @param {!Object} parentConstructor gives prototype methods to child
@@ -112,7 +112,7 @@ var jsa;
 	*/
 	inherits : function (childConstructor, parentConstructor) {
 		// TODO(jhazz): check calling of superclass
-		/** 
+		/**
 		* @constructor
 		* @ignore
 		*/
@@ -122,7 +122,7 @@ var jsa;
 		childConstructor.prototype = new TempConstructor();
 		childConstructor.prototype.constructor = childConstructor;
 	},
-		
+
 	/**
 	* Copy hash from source to destination
 	* @param {*} destination hash that values to be copied to
@@ -165,9 +165,9 @@ var jsa;
 	* @param {(string|Array)=} doNext.run Action that runs on successful loading
 	* @return {Object} loader record
 	*/
-	loadJS : function (jsPath, name, doNext) {
+	loadJS : function (jsPath /* @String */, name, doNext) {
 		var s,doc = jsa.doc,jsElement = doc.createElement("script"),loader;
-		
+
 		if (!name) {
 			name = jsPath;
 		}
@@ -186,7 +186,7 @@ var jsa;
 		doc.getElementsByTagName("head")[0].appendChild(jsElement);
 		s = jsPath + ((jsa.UNCACHEABLE_URLS) ? ((jsPath.indexOf('?') + 1) ? '&' : '?') + '~=' + Math.random() : "");
 		jsElement.src = s;
-			
+
 		/** @this {Element} */
 		loader = jsa.moduleLoaders[name] = {
 			name : name,
@@ -198,7 +198,7 @@ var jsa;
 		jsa.mixin(loader, doNext, 1);
 		return loader;
 	},
-		
+
 
 	/**
 	* Put log data in debug environment
@@ -217,7 +217,7 @@ var jsa;
 	* Push act object to the stage
 	* @param {Object} act What should to run next tick
 	* @param {jsa.Stage} act._stage timeline aggregator
-	*/	
+	*/
 	pushToStage : function (act) {
 		var stageId,stage;
 		if (act._stage) {
@@ -233,7 +233,7 @@ var jsa;
 			}
 		}
 		act.stage = stage;
-		
+
 		// Действия делятся на те, которые выполняются в конце (after) и остальные в обычном временной линии
 		if(act.aidAfter){
 			stage.timelineAfter[act.aidAfter] = act;
@@ -243,8 +243,8 @@ var jsa;
 			}
 			stage.timeline[act.aid] = act;
 		}
-		
-		
+
+
 		if (!stage.hTimer) {
 			jsa.runStage(stage);
 		}
@@ -261,7 +261,7 @@ var jsa;
 		return jsa.stages[stageId] = {
 			stageId : stageId,
 			hTimer : 0,
-			targetHtmlElement: targetHtmlElement || jsa.doc, 
+			targetHtmlElement: targetHtmlElement || jsa.doc,
 			timerInterval : timerInterval || jsa.STAGE_TIMER_INTERVAL,
 			timeline : {},
 			timelineAfter:{} // для вызова различных обновлений в конце отрисовки кадра
@@ -273,7 +273,7 @@ var jsa;
 				jsa.stageTick(stage);
 			}, stage.timerInterval);
 	},
-	
+
 	runStageId : function (stageId) {
 		var stage = jsa.stages[stageId];
 		if ((!!stage) && (!stage.hTimer)) {
@@ -303,7 +303,7 @@ var jsa;
 					n--;
 				}
 			}
-		
+
 			for (i in stage.timelineAfter) {
 				act = stage.timelineAfter[i];
 				n++;
@@ -322,16 +322,16 @@ var jsa;
 				}
 			}
 		}
-		
+
 		if (!n) {
 			jsa.win.clearInterval(stage.hTimer);
 			stage.hTimer = 0;
 		}
 	},
-		
+
 		//jsa.registerModule({name:'sys.ui.Control',requires:['sys.ui.Data'],constructor:function(){}});
-		
-		
+
+
 	/**
 	* Asynchrous call the action or actions. If action is a set of actions run
 	* fires these actions independently without control. If action class
@@ -376,28 +376,28 @@ var jsa;
 							// Deferred call
 							// Module with this namespace like 'ui.control.Button' has not been loaded
 							// Let's check if it does not loading  '{libURL}/ui/control/button.js'
-							
+
 							if (!jsa.moduleLoaders[moduleName]) {
 								// if module file didn't enqueued to loading let's load it
 								act.stillLoading=1;
 								s = jsa.LIB_URL + jsPath + ".js";
 								if(DEBUG){
-									console.log("Loading script " + s);
+									jsa.console.log("Loading script " + s);
 								}
 								jsa.loadJS(s, moduleName, {run: act, fail: act.fail});
 								return 1;
 							}
 						}else{
 							if (DEBUG) {
-								console.log('jsa.run error: Module '+moduleName+' has been loaded but action named as '+an+' is undefined');
+								jsa.console.log('jsa.run error: Module '+moduleName+' has been loaded but action named as '+an+' is undefined');
 							}
 							return 0;
 						}
 					}
-				
+
 				}else{
 					if(DEBUG) {
-						console.log('run: Undefined action');
+						jsa.console.log('run: Undefined action');
 					}
 					return 0;
 				}
@@ -405,7 +405,7 @@ var jsa;
 		}
 		return jsa.pushToStage(act);
 	},
-		
+
 	/**
 	* @param {String} tpl html template with {} expressions
 	* @param {Object=} scopeObject object that provide its vars or methods
@@ -423,7 +423,7 @@ var jsa;
 			}
 		});
 	},
-	
+
 	/**
 	* @param {String} id name of the tag, i.e. div
 	* @param {Object=} attrs list of tag attributes
@@ -456,25 +456,25 @@ var jsa;
 	},
 
 	registerFrame: function (window,windowName) {
-		return new jsa.Frame(window,jsa,windowName);
+		return new jsa.Frame(window,windowName);
 	},
-	
+
 	/**
 	* Subscription of subObj.subMethod to pubObj.<pubEvent>
 	* fills jsa.subscribers[pubObjNames][subObjNames][eventNames]=[subObj,subMethod]
 	* @param {object} publisher Object that spread event
-	* @param {string} event name 
+	* @param {string} event name
 	* @param {object} subscriber object that subscribing to publishing event notify
 	* @param {function} subscriber object method activating by callback
 	*/
 	sub:function(pubObj,eventName,subObj,subMethod) {
 		var v,evs,subs;
 		if(!pubObj.name){
-			console.error('sub: pubObj has no name');
+			jsa.console.error('sub: pubObj has no name');
 			return false;
 		}
 		if(!subObj.name){
-			console.error('sub: subObj has no name');
+			jsa.console.error('sub: subObj has no name');
 			return false;
 		}
 		subs=jsa.subscribers[pubObj.name];
@@ -490,7 +490,7 @@ var jsa;
 			v=evs[eventName]=[subObj,subMethod];
 		}
 	},
-	
+
 	pub:function(pubObj,eventName,eargs) {
 		var sObjName,evs,subs=jsa.subscribers[pubObj.name],v;
 		if(subs) {
@@ -545,12 +545,16 @@ jsa.Frame=jsa.define({
 		_.name=name;
 		_.win=window;
 		_.doc=window.document;
-		_.jsa.frames[name]=_;	
+		_.jsa.frames[name]=_;
 	},
 	methods:{
+        /*
 		replaceConsole:function(){
-			if(CREATE_CONSOLE){this.win.console=jsa.console;}	
+			if(CREATE_CONSOLE){
+                console=jsa.console;
+            }
 		},
+        */
 		run : function (act) {
 			/** @this jsa.Frame */
 			act.win=this.win;
@@ -565,209 +569,201 @@ jsa.Frame=jsa.define({
 });
 
 
-if(CREATE_CONSOLE){
+if(CREATE_CONSOLE) {
 	/** @class jsa.Console */
-	jsa.Console=jsa.define({
-		// class static
-		clsName : 'Console',
-		/** @constructor */
-		methods:{
-			init:function(aTargetWindow,container) {
-				var _ = this;
-				_.win = aTargetWindow || window;
-				_.doc = _.win.document;
-				_.options={mainMenuHeight:20,monitorSize:0.3, logSize:0.4,pBorderSize:10,pSpacing:5};
-				_.container=container || _.doc.body;
-				_.timers={};
-				_.curGroupEntry=0;
-				_.curGroupIndent=0;
-				_.consoleMonitor = 
-					jsa.createDiv('consoleMonitor', {
-						style : {
-							position : 'absolute',
-							left : '70%',
-							top : 0,
-							width : '30%',
-							height : '400px',
-							overflow:'hidden',
-							backgroundColor : '#e0ffe0'
-						}
-					},
-					_.container);
-					
-			
-				var tmpl = {
+	jsa.Console=function(){
+		/** @type {Array} **/
+		this.logData = [];
+		this.lastAdded=0;
+		this.name="jsa.console";
+	};
+	jsa.Console.prototype={
+		init:function(aTargetWindow,container) {
+			var _ = this;
+			_.win = aTargetWindow || window;
+			_.doc = _.win.document;
+			_.options={mainMenuHeight:20,monitorSize:0.3, logSize:0.4,pBorderSize:10,pSpacing:5};
+			_.container=container || _.doc.body;
+			_.timers={};
+			_.curGroupEntry=0;
+			_.curGroupIndent=0;
+			_.consoleMonitor =
+				jsa.createDiv('consoleMonitor', {
 					style : {
 						position : 'absolute',
-						left : 0,
+						left : '70%',
 						top : 0,
-						overflow:'auto',
-						width : '50px',
-						height : '50px',
-						backgroundColor : '#ffffe0'
+						width : '30%',
+						height : '400px',
+						overflow:'hidden',
+						backgroundColor : '#e0ffe0'
 					}
-				};
-				_.consoleWatch = jsa.createDiv('consoleWatch', tmpl, _.consoleMonitor, 'Console watch');
-				_.consoleLog = jsa.createDiv('consoleLog', tmpl, _.consoleMonitor, 'Console log');
-				
-				
-				/** @type {Array} **/
-				_.logData = [];
-				
-				jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});},_.win);
-				jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});
-			},
-			group: function (groupName){
-				this.addLog(arguments,5); // 5-group opened
-			},
-			groupCollapsed:function(groupName){
-			},
-			time: function(timerName){
-				this.timers[timerName]=new Date();
-			},
-			timeEnd:function(timerName){
-				if(this.timers[timerName]) {
-					this.info(timerName+": "+Number(new Date()-this.timers[timerName])/1000+" sec");
-				}
-			},
-			/** 
-			@param {*} puts any data to local debugger
-			*/
-			log:function(){
-				this.addLog(arguments,1); // 1-info
-			},
-			info:function(){
-				this.addLog(arguments,1); // 1-info
-			},
-			warn:function(){
-				this.addLog(arguments,2); // 2-warning
-			},
-			error:function(){
-				this.addLog(arguments,3); // 3-error
-			},
-			groupEnd:function(groupNameOptional){
-				var _=this,i=_.curGroupEntry;
-				if(!i){
-					_.warn("Called Console.groupEnd() without Console.group()");
-				}else{
-					_.curGroupEntry=_.logData[i][2];
-					_.curGroupIndent--;
-				}
-			},
-			addLog :function (args, mode) {
-				var i,v=[],_ = this,logEntry=[];
-				for(i=0;i<args.length;i++){
-					v.push(args[i].toString());
-				}
-				logEntry=[v, mode, _.curGroupEntry, _.curGroupIndent];
-				if(mode==5){_.curGroupEntry=_.logData.length;_.curGroupIndent++;}
-				_.logData.push(logEntry);
-				jsa.run({f : _.regenerate,_:_, aidAfter:ACTION_JSA_CONSOLE_REGENERATE});
-			},
+				},
+				_.container);
 
-			regenerate:function(act) {
-				var _ = act._, e, df, d=_.doc, logEntry,n = _.logData.length, i,j,v,s;
-				if(DEBUG){if(!d){alert('jsa.console.regenerateConsole called out of console context');return;}}
-				if(_.lastAdded<n){
-					df=d.createDocumentFragment();
-					for(i=_.lastAdded;i<n;i++){
-						logEntry=_.logData[i];
-						e=d.createElement("div");
-						v=logEntry[0];
-						s="";
-						for(j=0;j<v.length;j++){
-							s+="<td class='log'>"+v[j]+"</td>";
-						}
-						if(logEntry[3]>0){
-							s="<td class='log' width='"+(logEntry[3]*10)+"'>&nbsp;</td>"+s;
-						}
-						s="<table cellspacing=0 cellpadding=0 border=0><tr>"+s+"</tr></table>";
-						e.innerHTML=s;
-						df.appendChild(e);
-					}
-				_.lastAdded=i;
-				_.consoleLog.appendChild(df);
+
+			var tmpl = {
+				style : {
+					position : 'absolute',
+					left : 0,
+					top : 0,
+					overflow:'auto',
+					width : '50px',
+					height : '50px',
+					backgroundColor : '#ffffe0'
 				}
-			},
-			rearrange:function (act) {
-				var _=act._, b=_.container, w=b.clientWidth, h=b.clientHeight, pw,ph, ls, 
-					stMonitor=_.consoleMonitor.style, lab=_.labIFrame, stLab, stLog=_.consoleLog.style, 
-					stWatch=_.consoleWatch.style, o=_.options,borderSize=o.pBorderSize,spacing=o.pSpacing,mmHeight=o.mainMenuHeight;
-				// _.options={monitorSize:0.3, logSize:0.4,pBorderSize:1,pSpacing:2};
-				
-				if (lab) {
-					stLab=lab.style;
-				}
-				if(w>h){
-					pw=Math.round(w * o.monitorSize);
-					ph=h;
-					stMonitor.height=ph-mmHeight-borderSize*2+"px";
-					stMonitor.left=(w-pw-borderSize)+"px";
-					stMonitor.top=borderSize+mmHeight+"px";
-					stMonitor.width=pw+"px";
-					if(!!lab){
-						stLab.left=borderSize+"px";
-						stLab.top=mmHeight+borderSize+"px";
-						stLab.width=(w-pw-borderSize*2-spacing)+"px";
-						stLab.height=(h-borderSize*2-mmHeight)+"px";
-					}
-					
-					ls=Math.round(o.logSize*h);
-					stWatch.width=stLog.width=pw+"px";
-					stLog.height=ls;
-					stLog.top="0px";
-					stWatch.left=stLog.left="0px";
-					
-					stWatch.height=ph-ls-o.pSpacing-mmHeight;
-					stWatch.top=ls+spacing;
-					
-				}else{
-					ph=Math.round(h*o.monitorSize);
-					pw=w;
-					stMonitor.height=ph+"px";
-					stMonitor.top=(h-ph-borderSize)+"px";
-					stMonitor.left=borderSize+"px";
-					stMonitor.width=w-borderSize*2+"px";
-					
-					if(!!lab){
-						stLab.left=borderSize+"px";
-						stLab.top=mmHeight+borderSize+"px";
-						stLab.width=w-borderSize*2+"px";
-						stLab.height=(h-mmHeight-ph-borderSize*2-spacing*2)+"px";
-					}
-					ls=Math.round(o.logSize*w);
-					stLog.width=ls+"px";
-					stWatch.height=stLog.height=ph+"px";
-					stWatch.top=stLog.top="0px";
-					stLog.left="0px";
-					
-					stWatch.left=ls+spacing+"px";
-					stWatch.width=pw-spacing-ls+"px";
-				}
-			
-			}
-			
+			};
+			_.consoleWatch = jsa.createDiv('consoleWatch', tmpl, _.consoleMonitor, 'Console watch');
+			_.consoleLog = jsa.createDiv('consoleLog', tmpl, _.consoleMonitor, 'Console log');
+			debugger;
+			jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});},_.win);
+			jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});
 		},
-		constructor : function () {
-			this.lastAdded=0;
-			this.name="jsa.console";
+		group: function (groupName){
+			this.addLog(arguments,5); // 5-group opened
+		},
+		groupCollapsed:function(groupName){
+		},
+		time: function(timerName){
+			this.timers[timerName]=new Date();
+		},
+		timeEnd:function(timerName){
+			if(this.timers[timerName]) {
+				this.info(timerName+": "+Number(new Date()-this.timers[timerName])/1000+" sec");
+			}
+		},
+		/**
+		@param {*} puts any data to local debugger
+		*/
+		log:function(){
+			this.addLog(arguments,1); // 1-info
+		},
+		info:function(){
+			this.addLog(arguments,1); // 1-info
+		},
+		warn:function(){
+			this.addLog(arguments,2); // 2-warning
+		},
+		error:function(){
+			this.addLog(arguments,3); // 3-error
+		},
+		groupEnd:function(groupNameOptional){
+			var _=this,i=_.curGroupEntry;
+			if(!i){
+				_.warn("Called Console.groupEnd() without Console.group()");
+			}else{
+				_.curGroupEntry=_.logData[i][2];
+				_.curGroupIndent--;
+			}
+		},
+
+		addLog :function (args, mode) {
+			var i,v=[],_ = this,logEntry=[];
+			for(i=0;i<args.length;i++){
+				v.push(args[i].toString());
+			}
+			logEntry=[v, mode, _.curGroupEntry, _.curGroupIndent];
+			if(mode==5){_.curGroupEntry=_.logData.length;_.curGroupIndent++;}
+			_.logData.push(logEntry);
+			jsa.run({f : _.regenerate,_:_, aidAfter:ACTION_JSA_CONSOLE_REGENERATE});
+		},
+
+		regenerate:function(act) {
+			var _ = act._, e, df, d=_.doc, logEntry,n = _.logData.length, i,j,v,s;
+			if(!_.consoleMonitor) {
+				return 'continue';
+			}
+			if(_.lastAdded<n){
+				df=d.createDocumentFragment();
+				for(i=_.lastAdded;i<n;i++){
+					logEntry=_.logData[i];
+					e=d.createElement("div");
+					v=logEntry[0];
+					s="";
+					for(j=0;j<v.length;j++){
+						s+="<td class='log'>"+v[j]+"</td>";
+					}
+					if(logEntry[3]>0){
+						s="<td class='log' width='"+(logEntry[3]*10)+"'>&nbsp;</td>"+s;
+					}
+					s="<table cellspacing=0 cellpadding=0 border=0><tr>"+s+"</tr></table>";
+					e.innerHTML=s;
+					df.appendChild(e);
+				}
+			_.lastAdded=i;
+			_.consoleLog.appendChild(df);
+			}
+		},
+		rearrange:function (act) {
+			var _=act._, b=_.container, w=b.clientWidth, h=b.clientHeight, pw,ph, ls,
+				stMonitor=_.consoleMonitor.style, lab=_.labIFrame, stLab, stLog=_.consoleLog.style,
+				stWatch=_.consoleWatch.style, o=_.options,borderSize=o.pBorderSize,spacing=o.pSpacing,mmHeight=o.mainMenuHeight;
+			// _.options={monitorSize:0.3, logSize:0.4,pBorderSize:1,pSpacing:2};
+
+			if (lab) {
+				stLab=lab.style;
+			}
+			if(w>h){
+				pw=Math.round(w * o.monitorSize);
+				ph=h;
+				stMonitor.height=ph-mmHeight-borderSize*2+"px";
+				stMonitor.left=(w-pw-borderSize)+"px";
+				stMonitor.top=borderSize+mmHeight+"px";
+				stMonitor.width=pw+"px";
+				if(!!lab){
+					stLab.left=borderSize+"px";
+					stLab.top=mmHeight+borderSize+"px";
+					stLab.width=(w-pw-borderSize*2-spacing)+"px";
+					stLab.height=(h-borderSize*2-mmHeight)+"px";
+				}
+
+				ls=Math.round(o.logSize*h);
+				stWatch.width=stLog.width=pw+"px";
+				stLog.height=ls;
+				stLog.top="0px";
+				stWatch.left=stLog.left="0px";
+
+				stWatch.height=ph-ls-o.pSpacing-mmHeight;
+				stWatch.top=ls+spacing;
+
+			}else{
+				ph=Math.round(h*o.monitorSize);
+				pw=w;
+				stMonitor.height=ph+"px";
+				stMonitor.top=(h-ph-borderSize)+"px";
+				stMonitor.left=borderSize+"px";
+				stMonitor.width=w-borderSize*2+"px";
+				if(!!lab){
+					stLab.left=borderSize+"px";
+					stLab.top=mmHeight+borderSize+"px";
+					stLab.width=w-borderSize*2+"px";
+					stLab.height=(h-mmHeight-ph-borderSize*2-spacing*2)+"px";
+				}
+				ls=Math.round(o.logSize*w);
+				stLog.width=ls+"px";
+				stWatch.height=stLog.height=ph+"px";
+				stWatch.top=stLog.top="0px";
+				stLog.left="0px";
+				stWatch.left=ls+spacing+"px";
+				stWatch.width=pw-spacing-ls+"px";
+			}
 		}
+	};
+	jsa.console = new jsa.Console();
+} // if CREATE_CONSOLE
 
-	});
 
-} // CREATE_CONSOLE
 
 jsa.on('load',function(){
 	/** @this window */
+	debugger;
 	jsf=jsa.registerFrame(window,"AppTopWindow");
 	if (CREATE_CONSOLE)	{
-		jsa.console = new jsa.Console();
 		jsa.console.labIFrame=jsf.find("labiframe1");
 		jsa.console.init(window);
 		jsa.actionByCode[ACTION_JSA_CONSOLE_REGENERATE] = jsa.actionByName['jsa.console.regenerate'] = jsa.console.regenerate;
 		jsa.actionByCode[ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['jsa.console.rearrange'] = jsa.console.rearrange;
-		jsf.replaceConsole();
-		console.log('Console module starts');
+		jsa.console.log('Console module starts');
 	}
 },window);
 
@@ -779,16 +775,15 @@ if (!COMPILED) {
 
 
 
-jsa.createControl=function(vmodel,dmodel,htmlContainer,parentCtrl){
-	var ctrl,cls=vmodel.ctrl||'Control',classDef=jsa[cls];
+jsa.createControl=function(viewModel,dataProvider,htmlContainer,parentCtrl){
+	var ctrl,cls=viewModel.ctrl||'Control',classDef=jsa[cls];
 	if(!classDef){
 		if(DEBUG){
-			console.log('Undefined class '+cls);
+			jsa.console.log('Undefined class '+cls);
 		}
 	}
-	debugger;
 	ctrl=new (classDef)();
-	ctrl.put(vmodel,dmodel,htmlContainer,parentCtrl);
+	ctrl.put(viewModel,dataProvider,htmlContainer,parentCtrl);
 };
 
 /**
@@ -802,13 +797,13 @@ jsa.Control=function(a) {
 
 };
 jsa.Control.prototype={
-	_className:"jsa.Control",
-	
+	_className:"Control",
+
 	put:function(viewModel,dataProvider,htmlContainer,parentCtrl){
 	// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
-		var kc,htmlTag=viewModel.tag||'div',kid,s,i,j,targetElement=((!htmlContainer) ? jsa.doc : htmlContainer.ownerDocument).createElement(htmlTag);
+		var kc,htmlTag=viewModel.tag||'div',s,i,j,targetElement=((!htmlContainer) ? jsa.doc : htmlContainer.ownerDocument).createElement(htmlTag);
 		//targetElement.setAttribute('id', id);
-	
+
 		this.viewModel=viewModel;
 		this.dataProvider=dataProvider;
 		this.parentCtrl=parentCtrl;
@@ -841,52 +836,63 @@ jsa.Control.prototype={
 				for (j in s) {
 					targetElement.style[j]=s[j];
 				}
-			}else if(i=='height'){
-				if (s=='client'){
-					height=parentCtrl.clientHeight;
-				} else{
-					targetElement.style.height=s+'px';
-				}
-			}else if(i=='width'){
-				if (s=='client'){
-					height=parentCtrl.clientWidth;
-				} else{
-					targetElement.style.width=s+'px';
-				}
 			}
 		}
-		
+		this.element=targetElement;
+		this.arrangeByParent();
+
 		if (!!htmlContainer) {
 			htmlContainer.appendChild(targetElement);
 		}
-		this.element=targetElement;
+
 	},
+    /**
+     * Arrange control depend on parent client area
+     *
+     */
+    arrangeByParent:function(){
+        var vm=this.viewModel,w,h,e,parentCtrl=this.parentCtrl;
+        if(!parentCtrl){
+			w=this.width;
+			h=this.height;
+        }else if(!!(e=parentCtrl.element)) {
+			w=e.clientWidth;
+			h=e.clientHeight;
+        }else {
+			w=parentCtrl.width;
+			h=parentCtrl.height;
+        }
+
+        if(vm.dock=='client'){
+            this.element.style.width =(this.width=w)+"px";
+            this.element.style.height=(this.height=h)+"px";
+        }
+
+    },
 	anchor:function(id){
 		return "[["+id+"_"+jsa.getUID()+"]]";
 	}
 };
 
 
-
-
 /*
-	
+
 	// define a new type SkinnedMesh and a constructor for it
 function SkinnedMesh(geometry, materials) {
   // call the superclass constructor
   THREE.Mesh.call(this, geometry, materials);
- 
+
   // initialize instance properties
   this.identityMatrix = new THREE.Matrix4();
   this.bones = [];
   this.boneMatrices = [];
   ...
 };
- 
+
 // inherit behavior from Mesh
 SkinnedMesh.prototype = Object.create(THREE.Mesh.prototype);
 SkinnedMesh.prototype.constructor = SkinnedMesh;
- 
+
 // define an overridden update() method
 SkinnedMesh.prototype.update = function(camera) {
   ...
