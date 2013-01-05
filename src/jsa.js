@@ -878,7 +878,6 @@ jsa.Control.prototype={
 	}
 };
 
-var c= new jsa.Control({z:1});
 /*
 
 	// define a new type SkinnedMesh and a constructor for it
