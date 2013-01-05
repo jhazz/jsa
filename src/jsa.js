@@ -633,7 +633,7 @@ if(CREATE_CONSOLE) {
 			}
 		},
 		/**
-		@param {*} puts any data to local debugger
+		@param {*|null} puts any data to local debugger
 		*/
 		log:function(){
 			this.addLog(arguments,1); // 1-info
@@ -656,7 +656,11 @@ if(CREATE_CONSOLE) {
 				_.curGroupIndent--;
 			}
 		},
-
+		/**
+		 * Push array of args from log wrapper function to the log
+		 * @param {Array} args
+		 * @param {integer} mode
+		 */	
 		addLog :function (args, mode) {
 			var i,v=[],_ = this,logEntry=[];
 			for(i=0;i<args.length;i++){
@@ -787,12 +791,12 @@ jsa.createControl=function(viewModel,dataProvider,htmlContainer,parentCtrl){
 };
 
 /**
-	@class jsa.Control
-*/
-
-jsa.Control=function(a) {
-	if(!!a){
-		jsa.copy(this,a);
+ * @class jsa.Control
+ * @param {Object} initData Initial control's data
+ */
+jsa.Control=function(initData) {
+	if(!!initData){
+		jsa.copy(this,initData);
 	}
 
 };
@@ -874,7 +878,7 @@ jsa.Control.prototype={
 	}
 };
 
-
+var c= new jsa.Control({z:1});
 /*
 
 	// define a new type SkinnedMesh and a constructor for it
