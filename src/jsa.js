@@ -256,7 +256,7 @@ var jsa,jsf;
 	* @param {String} stageId Stage identificator
 	* @param {Number=} timerInterval timing interval between refreshment
 	* @param {HTMLElement} targetHtmlElement main html element the stage will be exposed in
-	* @returns {Object} 
+	* @returns {Object}
 	*/
 	createStage : function (stageId, timerInterval,targetHtmlElement) {
 		return jsa.stages[stageId] = {
@@ -660,7 +660,7 @@ if(CREATE_CONSOLE) {
 		 * Push array of args from log wrapper function to the log
 		 * @param {Array} args
 		 * @param {integer} mode
-		 */	
+		 */
 		addLog :function (args, mode) {
 			var i,v=[],_ = this,logEntry=[];
 			for(i=0;i<args.length;i++){
@@ -825,7 +825,7 @@ jsa.Control.prototype={
 		}
 		for (i in viewModel) {
 			s = viewModel[i];
-			
+
 			if(i=='a') { // attrs
 				for (j in s) {
 					element.setAttribute(j, s[j]);
@@ -844,28 +844,36 @@ jsa.Control.prototype={
 				this.align=s;
 			}
 		}
-	
-		var htmlOwner=(document.compatMode=='CSS1Compat')?document.documentElement:document.body;
-		
-		s=this.width;
-		if(isFinite(s)){
-			this.w=s;
-		}else {
-			if(!s)s='100%';		
-			if(s.charAt((l=s.length-1))=='%'){
 
-				if(!parentCtrl){
-					if (!htmlContainer){
-						parentWidth=htmlOwner.clientWidth;
-					}else parentWidth=htmlContainer.clientWidth;
-				}else{
-					parentWidth=parentCtrl.w-parentCtrl.borderSize*2;
-				}
-				this.w=parseInt(s.substr(0,l))*parentWidth/100;
-			}else {
-				this.w=parseInt(s);
-			}		
-		}
+		var htmlOwner=(document.compatMode=='CSS1Compat')?document.documentElement:document.body;
+
+    s = this.width;
+    if (isFinite(s)) {
+      this.w = s;
+    } else {
+      jsa.console.info(document.compatMode);
+      needWatchForHtmlElement=htmlOwner;
+      jsa.on('resize',function(){
+        jsa.console.log('Html owner resized!');
+      },htmlOwner);
+
+      if (!s || s == '100%') {
+        this.w = parentWidth;
+      } else {
+        if (s.charAt((l = s.length - 1)) == '%') {
+          if (!parentCtrl) {
+            if (!htmlContainer) {
+              parentWidth = htmlOwner.clientWidth;
+            } else parentWidth = htmlContainer.clientWidth;
+          } else {
+            parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
+          }
+          this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
+        } else {
+          this.w = parseInt(s);
+        }
+      }
+    }
 
 		s=this.height;
 		if(isFinite(s)){
@@ -873,7 +881,7 @@ jsa.Control.prototype={
 		}else {
 			if(!s)s='100%';
 			if(s.charAt((l=s.length-1))=='%'){
-				if(!parentCtrl){ 
+				if(!parentCtrl){
 					if (!htmlContainer){
 						parentHeight=htmlOwner.clientHeight;
 					} else parentHeight=htmlContainer.clientHeight;
@@ -885,7 +893,7 @@ jsa.Control.prototype={
 				this.h=parseInt(s);
 			}
 		}
-			
+
 		if(!!(s=viewModel._)){
 			for (j in s){ // array of child elements
 				kc=s[j];
@@ -923,14 +931,14 @@ jsa.Control.prototype={
 		vx1=vy1=bs;
 		vx2=this.w-bs;
 		vy2=this.h-bs;
-		
+
 		for(i in this.kids){
 			c=this.kids[i];
 			c.x=vx1;
 			c.y=vy1;
 			c.w=c.width;
 			c.h=c.height;
-			
+
 			c.isVisible=(vx2>vx1)&&(vy2>vy1);
 			if (c.isVisible){
 				switch(c.align) {
