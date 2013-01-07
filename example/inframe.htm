@@ -100,19 +100,29 @@ init:function(){
 	FX.dmodel=new jsa.GridDataProvider();
 	FX.dmodel.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
-	FX.vmodel={
+	FX.vmodel1={
 		ctrl:'Control',
-		s:{border:'1px solid #808080',padding:'10px',background:'#e0e0e0'},
+		borderSize:5,
+		width:'100%',
+		height:'100%',
+		s:{background:'#e06060'},
 		html:'<b>theHtmlTextInside</b>',
 		_:[{
 			ctrl:'Control',
-			html:'hello!',
-            dock:'client'
+			s:{border:'1px solid #80f080',background:'#f00080'},
+			html:'hello from top!',
+            align:'top'
+			},
+			{
+			ctrl:'Control',
+			s:{border:'1px solid #80f080',background:'#f0f080'},
+			html:'hello from right!',
+            align:'right'
 			}
 		]
 	};
 
-	jsf.dataGrid1=jsa.createControl(FX.vmodel,FX.dmodel,document.body);
+	jsf.dataGrid1=jsa.createControl(FX.vmodel1,FX.dmodel);
 	jsa.console.info('Success!');
 //	jsf.gridContainer.put(document.body,{t:'div',width:100,position:'absolute',top:50,left:200,backgroundColor:'#e0e0f0',height:200,html:'<b>theHtmlTextInside</b>',_:[{t:'ul',html:'hello!',a:{type:'circle'}}]});
 
