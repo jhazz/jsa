@@ -88,8 +88,8 @@ init:function(){
 
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
-	FX.dmodel=new jsa.GridDataProvider();
-	FX.dmodel.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
+	FX.dataProvider1=new jsa.GridDataProvider();
+	FX.dataProvider1.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
 	FX.vmodel1={
 		ctrl:'Control',
@@ -112,7 +112,8 @@ init:function(){
 		}]
 	};
 
-	jsf.dataGrid1=jsa.createControl(FX.vmodel1,FX.dmodel);
+	inframe1.dataGrid1=inframe1.run({c:ACTION_JSA_CREATE_CONTROL,vm:FX.vmodel1,dp:FX.dataProvider1})
+	//jsa.createControl(FX.vmodel1,FX.dataProvider1);
 	jsa.console.info('Success!');
 //	jsf.gridContainer.put(document.body,{t:'div',width:100,position:'absolute',top:50,left:200,backgroundColor:'#e0e0f0',height:200,html:'<b>theHtmlTextInside</b>',_:[{t:'ul',html:'hello!',a:{type:'circle'}}]});
 
@@ -210,7 +211,9 @@ recursiveFolder:function(oFld,subFolder,callbackFolder,callbackFile,isRecursive)
 
 
 // TODO: Make subscription instead watching
-var inframe1, jsat = setInterval(function () {
+/** @type jsa.Frame */
+var inframe1;
+var jsat = setInterval(function () {
 	jsa = window.top.jsa;
 	if ( !! jsa) {
 		clearInterval(jsat);

@@ -4,8 +4,8 @@
  * @author Vlad Zbitnev
  */
 
-/*jslint eqeq:true, indent: 4, maxerr: 230, white: true, browser: true, evil: true, nomen: true, plusplus: true, sloppy: true */
-/*jshint curly:true */
+/*jslint eqeqeq:false, indent: 4, maxerr: 230, white: true, browser: true, evil: true, nomen: true, plusplus: true, sloppy: true */
+/*jshint eqeqeq:false, curly:true */
 
 /**
  * @type Boolean Overridden to true by the compiler when --closure_pass
@@ -24,6 +24,7 @@ var DEBUG=1;
 
 var ACTION_JSA_CONSOLE_REGENERATE = 1;
 var ACTION_JSA_CONSOLE_REARRANGE = 2;
+var ACTION_JSA_CREATE_CONTROL=3;
 var jsa,jsf;
 
 (function() {
@@ -80,7 +81,7 @@ var jsa,jsf;
 	subscribers:{},
 	/**
 	* Executes on class ready after load or inline
-	* @param {Object} classDef Class object
+	* @param {Object} classDef Class object in Ext manner
 	* @param {String} classDef.clsName class name
 	* @param {Array} classDef.deps array of module urls/names the class depends on
 	* @param {Function} classDef.inherits
@@ -339,7 +340,7 @@ var jsa,jsf;
 	* unavailable it enqueue action to the timeline
 	*
 	* @param {(string|Array|number|Function)} action name (i.e. 'ui.control.Button.hide') or action[]
-	* @param {Object=} act Arguments of the action that pushes to the actions chain
+	* @param act Arguments of the action that pushes to the actions chain
 	*   @param {Number=} act.start Delay to deferred start in msec
 	*   @param {Number=} act.timeout Maximum delay after start to break the process
 	*       and follow the fail chain
@@ -348,14 +349,14 @@ var jsa,jsf;
 	*       repeatedly call itself and goes next after a while
 	*   @param {Object=} act._ target object
 	*   @param {Number=} act.f action reference to the calling Function
-	*   @param {Number=} act.c action code (only if act.a is not set)
+	*   @param {Number=} act.c action code (only if act.n is not set)
 	*   @param {String=} act.n action name using (only if act.ac is not set)
-	*   @param {Number=} act.aid action must be called only once per tick!
-	*   @param {Number=} act.aidAfter action must be called only once per tick after all act.aid
+	*   @param {String=} act.aid means that action must be called only once per tick! [aid] is unique name of process. If [aid] already exist on the stage action not re-adds
+	*   @param {String=} act.aidAfter means that action must be called only once per tick after all act.aid
 	*   @param {Object=} act.jsf - frame the run called from
 	*   @param {String=} act.stageId stage of timelines with its own framerate and
 	*       timer. Be aware from multiple stages
-	* @this {jsa.act} act
+	* @this {jsa}
 	*/
 	run : function (act) {
 		var ac,an,f=act.f,s;
@@ -463,10 +464,10 @@ var jsa,jsf;
 	/**
 	* Subscription of subObj.subMethod to pubObj.<pubEvent>
 	* fills jsa.subscribers[pubObjNames][subObjNames][eventNames]=[subObj,subMethod]
-	* @param {object} publisher Object that spread event
-	* @param {string} event name
-	* @param {object} subscriber object that subscribing to publishing event notify
-	* @param {function} subscriber object method activating by callback
+	* @param {object} pubObj publisher Object that spread event
+	* @param {string} eventName shortened event name
+	* @param {object} subObj subscriber object that subscribing to publishing event notify
+	* @param {function} subMethod subscriber object method activating by callback
 	*/
 	sub:function(pubObj,eventName,subObj,subMethod) {
 		var v,evs,subs;
@@ -632,9 +633,6 @@ if(CREATE_CONSOLE) {
 				this.info(timerName+": "+Number(new Date()-this.timers[timerName])/1000+" sec");
 			}
 		},
-		/**
-		@param {*|null} puts any data to local debugger
-		*/
 		log:function(){
 			this.addLog(arguments,1); // 1-info
 		},
@@ -778,7 +776,10 @@ if (!COMPILED) {
 
 
 
-jsa.createControl=function(viewModel,dataProvider,htmlContainer,parentCtrl){
+jsa.actionByCode[ACTION_JSA_CREATE_CONTROL] =
+jsa.actionByName['jsa.createControl']=
+jsa.createControl=function(a) {
+	var viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.pa;
 	var ctrl,cls=viewModel.ctrl||'Control',classDef=jsa[cls];
 	if(!classDef){
 		if(DEBUG){
@@ -788,6 +789,7 @@ jsa.createControl=function(viewModel,dataProvider,htmlContainer,parentCtrl){
 	ctrl=new (classDef)();
 	ctrl.put(viewModel,dataProvider,htmlContainer,parentCtrl);
 };
+
 
 /**
  * @class jsa.Control
@@ -847,33 +849,34 @@ jsa.Control.prototype={
 
 		var htmlOwner=(document.compatMode=='CSS1Compat')?document.documentElement:document.body;
 
-    s = this.width;
-    if (isFinite(s)) {
-      this.w = s;
-    } else {
-      jsa.console.info(document.compatMode);
-      needWatchForHtmlElement=htmlOwner;
-      jsa.on('resize',function(){
-        jsa.console.log('Html owner resized!');
-      },htmlOwner);
+		s = this.width;
+		if (isFinite(s)) {
+			this.w = s;
+		} else {
+			jsa.console.info(document.compatMode);
+			needWatchForHtmlElement = htmlOwner;
+			jsa.on('resize', function() {
+				jsa.console.log('Html owner resized!');
+			}, htmlOwner);
 
-      if (!s || s == '100%') {
-        this.w = parentWidth;
-      } else {
-        if (s.charAt((l = s.length - 1)) == '%') {
-          if (!parentCtrl) {
-            if (!htmlContainer) {
-              parentWidth = htmlOwner.clientWidth;
-            } else parentWidth = htmlContainer.clientWidth;
-          } else {
-            parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
-          }
-          this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
-        } else {
-          this.w = parseInt(s);
-        }
-      }
-    }
+			if (!s || s == '100%') {
+				this.w = parentWidth;
+			} else {
+				if (s.charAt((l = s.length - 1)) == '%') {
+					if (!parentCtrl) {
+						if (!htmlContainer) {
+							parentWidth = htmlOwner.clientWidth;
+						} else
+							parentWidth = htmlContainer.clientWidth;
+					} else {
+						parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
+					}
+					this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
+				} else {
+					this.w = parseInt(s);
+				}
+			}
+		}
 
 		s=this.height;
 		if(isFinite(s)){
