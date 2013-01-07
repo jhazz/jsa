@@ -6,25 +6,25 @@
 
 /*jslint eqeq:true, indent: 4, maxerr: 230, white: true, browser: true, evil: true, nomen: true, plusplus: true, sloppy: true */
 /*jshint curly:true */
+
 /**
- * @define {boolean} Overridden to true by the compiler when --closure_pass
+ * @type Boolean Overridden to true by the compiler when --closure_pass
  *     or --mark_as_compiled is specified.
  */
-var COMPILED = false;
+var COMPILED=true;
 /**
  * @define {boolean} May be exluded by compiler
  */
 var CREATE_CONSOLE = true;
 
 /**
- * @define {boolean} Debug mode keep debug messages in code
+ * @type Boolean Compilation directive to leave debug messages in code
  */
-var DEBUG = 1;
+var DEBUG=1;
 
 var ACTION_JSA_CONSOLE_REGENERATE = 1;
 var ACTION_JSA_CONSOLE_REARRANGE = 2;
 var jsa,jsf;
-
 
 (function() {
 	jsa={
@@ -253,9 +253,10 @@ var jsa,jsf;
 
 	/**
 	* Put log data in debug environment
-	* @param {string} stageId Stage identificator
-	* @param {number=} timerInterval timing interval between refreshment
-	* @param {Object} stage referencing object. If it removed stage will be stopped and deleted too
+	* @param {String} stageId Stage identificator
+	* @param {Number=} timerInterval timing interval between refreshment
+	* @param {HTMLElement} targetHtmlElement main html element the stage will be exposed in
+	* @returns {Object} 
 	*/
 	createStage : function (stageId, timerInterval,targetHtmlElement) {
 		return jsa.stages[stageId] = {
@@ -615,7 +616,6 @@ if(CREATE_CONSOLE) {
 			};
 			_.consoleWatch = jsa.createDiv('consoleWatch', tmpl, _.consoleMonitor, 'Console watch');
 			_.consoleLog = jsa.createDiv('consoleLog', tmpl, _.consoleMonitor, 'Console log');
-			debugger;
 			jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});},_.win);
 			jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});
 		},
@@ -760,7 +760,6 @@ if(CREATE_CONSOLE) {
 
 jsa.on('load',function(){
 	/** @this window */
-	debugger;
 	jsf=jsa.registerFrame(window,"AppTopWindow");
 	if (CREATE_CONSOLE)	{
 		jsa.console.labIFrame=jsf.find("labiframe1");
@@ -795,6 +794,8 @@ jsa.createControl=function(viewModel,dataProvider,htmlContainer,parentCtrl){
  * @param {Object} initData Initial control's data
  */
 jsa.Control=function(initData) {
+	this.width=50;
+	this.height=50;
 	if(!!initData){
 		jsa.copy(this,initData);
 	}
@@ -804,67 +805,120 @@ jsa.Control.prototype={
 	_className:"Control",
 
 	put:function(viewModel,dataProvider,htmlContainer,parentCtrl){
-	// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
-		var kc,htmlTag=viewModel.tag||'div',s,i,j,targetElement=((!htmlContainer) ? jsa.doc : htmlContainer.ownerDocument).createElement(htmlTag);
-		//targetElement.setAttribute('id', id);
+		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
+		var kc,htmlTag=viewModel.tag||'div',s,i,j,element=((!htmlContainer) ? jsa.doc : htmlContainer.ownerDocument).createElement(htmlTag);
+		//element.setAttribute('id', id);
 
 		this.viewModel=viewModel;
 		this.dataProvider=dataProvider;
 		this.parentCtrl=parentCtrl;
-		if (!!parentCtrl){
-			if(!parentCtrl.kids) {
-				parentCtrl.kids=[];
-			}
-			parentCtrl.kids.push(this);
-		}
+		/** @type HTMLElement */
+		this.element=element;
+		/** @type Array[jsa.Control] */
+		this.kids=[];
+
 		if (!!viewModel.html) {
-			targetElement.innerHTML=viewModel.html;
+			element.innerHTML=viewModel.html;
 		}
 		if (!!viewModel.thtml) {
-			targetElement.innerHTML=jsa.parsedHTML(viewModel.thtml, this);
+			element.innerHTML=jsa.parsedHTML(viewModel.thtml, this);
 		}
 		for (i in viewModel) {
 			s = viewModel[i];
-			if(i=='_'){
-				for (j in s){ // array of child elements
-					kc=s[j];
-					jsa.createControl(kc,dataProvider,targetElement,this);
-					//kid=new jsa[kc.ctrl||'Control']();
-					//kid.put(s[j],dataProvider,targetElement,this);
-				}
-			}else if(i=='a') { // attrs
+			
+			if(i=='a') { // attrs
 				for (j in s) {
-					targetElement.setAttribute(j, s[j]);
+					element.setAttribute(j, s[j]);
 				}
 			}else if(i=='s') { // style
 				for (j in s) {
-					targetElement.style[j]=s[j];
+					element.style[j]=s[j];
 				}
+			}else if (i=='borderSize') {
+				this.borderSize=s;
+			}else if (i=='width') {
+				this.width=s;
+			}else if (i=='height') {
+				this.height=s;
+			}else if (i=='align') {
+				this.align=s;
 			}
 		}
-		this.element=targetElement;
-		this.arrangeByParent();
-
-		if (!!htmlContainer) {
-			htmlContainer.appendChild(targetElement);
+		// Пока htmlElement не размещен внутри контейнера, его можно выровнить
+		// Попросим сделать это родителя
+		/** @TODO should understands percents */
+		this.w=parseInt(this.width);
+		this.h=parseInt(this.height);
+		
+		if(!!(s=viewModel._)){
+			for (j in s){ // array of child elements
+				kc=s[j];
+				jsa.createControl(kc,dataProvider,element,this);
+				}
+			}
+		if (!!parentCtrl){
+			parentCtrl.kids.push(this);
+			parentCtrl.arrangeKids();
 		}
-
+		if (!!htmlContainer) {
+			htmlContainer.appendChild(element);
+		}
 	},
-    /**
-     * Arrange control depend on parent client area
-     *
-     */
-    arrangeByParent:function(){
+	setPosSizeVisible:function(){
+		var e=this.element;
+		if(!e)return;
+		if((this.w<0)||(this.h<0)) this.isVisible=0;
+		if(!this.isVisible){
+			e.style.display='none';
+		}else{
+			e.style.position='absolute';
+			e.style.left=this.x+'px';
+			e.style.top=this.y+'px';
+			e.style.width=this.w+'px';
+			e.style.height=this.h+'px';
+			e.style.display='block';
+		}
+	},
+	arrangeKids:function(){
+		var i,c,vx1,vy1,vx2,vy2,bs=this.borderSize,ss=this.splitterSize||5;
+		vx1=vy1=bs;
+		vx2=this.w-bs;
+		vy2=this.h-bs;
+		
+		for(i in this.kids){
+			c=this.kids[i];
+			c.x=vx1;
+			c.y=vy1;
+			c.w=c.width;
+			c.h=c.height;
+			
+			c.isVisible=(vx2>vx1)&&(vy2>vy1);
+			if (c.isVisible){
+				switch(c.align) {
+					case 'top':
+						c.w=vx2-vx1;
+						vy1 += c.h+ss;
+						break;
+					case 'right':
+						vx2-=c.w+ss;
+						c.x=vx2+ss;
+						c.h=vy2-vy1;
+						break;
+				}
+			}
+			c.setPosSizeVisible();
+		}
+	},
+
+  /*  arrangeByParent:function(){
         var vm=this.viewModel,w,h,e,parentCtrl=this.parentCtrl;
+		debugger;
         if(!parentCtrl){
 			w=this.width;
 			h=this.height;
-        }else if(!!(e=parentCtrl.element)) {
-			w=e.clientWidth;
-			h=e.clientHeight;
         }else {
-			w=parentCtrl.width;
-			h=parentCtrl.height;
+			w=parentCtrl.clientWidth;
+			h=parentCtrl.clientHeight;
         }
 
         if(vm.dock=='client'){
@@ -872,7 +926,7 @@ jsa.Control.prototype={
             this.element.style.height=(this.height=h)+"px";
         }
 
-    },
+    },*/
 	anchor:function(id){
 		return "[["+id+"_"+jsa.getUID()+"]]";
 	}
