@@ -59,18 +59,7 @@ Try one!
 <script>
 /*global jsa, jsf */
 var logdemoTimer;
-function jsaReady()
-{
-  jsa.console.log ('console recordings started...');
-  FX.init();
-  jsa.on('resize',function(){
-	/// $.createDiv = function createDiv(id, attrs, into, tpl, scopeObject) {
-	var b=document.body, cw=b.clientWidth,ch=b.clientHeight,hw=Math.round(cw/2);
-	//FX.folderFlashInbox.div.style.width=hw;
-	//FX.folderFlashInbox.div.style.left=hw;
 
-  });
-}
 function startLogDemo(){
 	logdemoTimer=window.setInterval(function(){
 		jsa.console.log('Log text');
@@ -89,12 +78,14 @@ function showSettings(){
 
 
 var FX={
-//oFS:new ActiveXObject("Scripting.FileSystemObject"),
 init:function(){
+	// try
+	// FX.oFS=new ActiveXObject("Scripting.FileSystemObject");
 	FX.flashInbox=new jsa.Control({name:'Inbox папка на флэшке'});
 /*	FX.flashOutbox=new jsa.Control({name:'Outbox папка на флэшке'});
 	FX.serverInbox=new jsa.Control({name:'Inbox папка на сервере'});
 	FX.serverOutbox=new jsa.Control({name:'Outbox папка на сервере'});*/
+
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
 	FX.dmodel=new jsa.GridDataProvider();
@@ -111,15 +102,14 @@ init:function(){
 			ctrl:'Control',
 			s:{border:'1px solid #80f080',background:'#f00080'},
 			html:'hello from top!',
-            align:'top'
-			},
-			{
+			align:'top'
+		},{
 			ctrl:'Control',
 			s:{border:'1px solid #80f080',background:'#f0f080'},
+			width:200,
 			html:'hello from right!',
-            align:'right'
-			}
-		]
+			align:'right'
+		}]
 	};
 
 	jsf.dataGrid1=jsa.createControl(FX.vmodel1,FX.dmodel);
@@ -218,15 +208,24 @@ recursiveFolder:function(oFld,subFolder,callbackFolder,callbackFile,isRecursive)
 */
 };
 
-// TODO: Make subscription instead watching
-var jsat=setInterval(function(){
-	jsa=window.top.jsa;
-	if(!!jsa){
-        clearInterval(jsat);
-		jsf=jsa.registerFrame(window,'inframe1');
-		jsaReady()}
-	},1000);
 
+// TODO: Make subscription instead watching
+var inframe1, jsat = setInterval(function () {
+	jsa = window.top.jsa;
+	if ( !! jsa) {
+		clearInterval(jsat);
+		inframe1 = jsa.registerFrame(window, 'inframe1');
+		FX.init();
+
+		//jsa.on('resize',function(){
+		/// $.createDiv = function createDiv(id, attrs, into, tpl, scopeObject) {
+		//	var b=document.body, cw=b.clientWidth,ch=b.clientHeight,hw=Math.round(cw/2);
+		//FX.folderFlashInbox.div.style.width=hw;
+		//FX.folderFlashInbox.div.style.left=hw;
+
+		//});
+	}
+}, 1000);
 </script>
 
 
