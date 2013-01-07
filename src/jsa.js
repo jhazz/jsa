@@ -806,13 +806,13 @@ jsa.Control.prototype={
 
 	put:function(viewModel,dataProvider,htmlContainer,parentCtrl){
 		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
-		var kc,htmlTag=viewModel.tag||'div',s,i,j,element=((!htmlContainer) ? jsa.doc : htmlContainer.ownerDocument).createElement(htmlTag);
+		var parentHeight,parentWidth,kc,l,htmlTag=viewModel.tag||'div',s,i,j,element=((!htmlContainer) ? jsf.doc : htmlContainer.ownerDocument).createElement(htmlTag);
 		//element.setAttribute('id', id);
 
 		this.viewModel=viewModel;
 		this.dataProvider=dataProvider;
 		this.parentCtrl=parentCtrl;
-		/** @type HTMLElement */
+		/** @type Element */
 		this.element=element;
 		/** @type Array[jsa.Control] */
 		this.kids=[];
@@ -844,12 +844,48 @@ jsa.Control.prototype={
 				this.align=s;
 			}
 		}
-		// Пока htmlElement не размещен внутри контейнера, его можно выровнить
-		// Попросим сделать это родителя
-		/** @TODO should understands percents */
-		this.w=parseInt(this.width);
-		this.h=parseInt(this.height);
+	
+		var htmlOwner=(document.compatMode=='CSS1Compat')?document.documentElement:document.body;
 		
+		s=this.width;
+		if(isFinite(s)){
+			this.w=s;
+		}else {
+			if(!s)s='100%';		
+			if(s.charAt((l=s.length-1))=='%'){
+
+				if(!parentCtrl){
+					if (!htmlContainer){
+						parentWidth=htmlOwner.clientWidth;
+					}else parentWidth=htmlContainer.clientWidth;
+				}else{
+					parentWidth=parentCtrl.w-parentCtrl.borderSize*2;
+				}
+				this.w=parseInt(s.substr(0,l))*parentWidth/100;
+			}else {
+				this.w=parseInt(s);
+			}		
+		}
+
+		s=this.height;
+		if(isFinite(s)){
+			this.h=s;
+		}else {
+			if(!s)s='100%';
+			if(s.charAt((l=s.length-1))=='%'){
+				if(!parentCtrl){ 
+					if (!htmlContainer){
+						parentHeight=htmlOwner.clientHeight;
+					} else parentHeight=htmlContainer.clientHeight;
+				}else{
+					parentHeight=parentCtrl.h-parentCtrl.borderSize*2;
+				}
+				this.h=parseInt(s.substr(0,l))*parentHeight/100;
+			}else {
+				this.h=parseInt(s);
+			}
+		}
+			
 		if(!!(s=viewModel._)){
 			for (j in s){ // array of child elements
 				kc=s[j];
@@ -862,6 +898,9 @@ jsa.Control.prototype={
 		}
 		if (!!htmlContainer) {
 			htmlContainer.appendChild(element);
+		}else{
+		debugger;
+			jsf.doc.body.appendChild(element);
 		}
 	},
 	setPosSizeVisible:function(){
