@@ -100,20 +100,47 @@ init:function(){
 		html:'<b>theHtmlTextInside</b>',
 		_:[{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#f00080'},
-			html:'hello from top!',
-			align:'top'
+			s:{border:'1px solid #80f080',background:'#8000f0'},
+			html:'This is North',
+			side:'N'
+		},{
+			ctrl:'Control',
+			s:{border:'1px solid #80f080',background:'#a0f080'},
+			width:200,
+			height:10,
+			html:'This is East1',
+			side:'E'
+		},{
+			ctrl:'Control',
+			s:{border:'1px solid #80f080',background:'#a0f080'},
+			width:250,
+			height:10,
+			html:'This is East2',
+			side:'A'
 		},{
 			ctrl:'Control',
 			s:{border:'1px solid #80f080',background:'#f0f080'},
-			width:200,
-			html:'hello from right!',
-			align:'right'
+			width:180,
+			height:10,
+			html:'This is East3',
+			side:'E'
+		},{
+			ctrl:'Control',
+			s:{border:'1px solid #80f080',background:'#f02020'},
+			html:'This is South',
+			height:50,
+			side:'S'
+		},{
+			ctrl:'Control',
+			s:{border:'1px solid #80f080',background:'#f0f080'},
+			html:'This is Middle',
+			height:20,
+			side:'M'
 		}]
 	};
 
-	inframe1.dataGrid1=inframe1.run({c:ACTION_JSA_CREATE_CONTROL,vm:FX.vmodel1,dp:FX.dataProvider1})
-	//jsa.createControl(FX.vmodel1,FX.dataProvider1);
+	inframe1.dataGrid1=inframe1.run({n:'.put',vm:FX.vmodel1,dp:FX.dataProvider1});
+	//jsa.put(FX.vmodel1,FX.dataProvider1);
 	jsa.console.info('Success!');
 //	jsf.gridContainer.put(document.body,{t:'div',width:100,position:'absolute',top:50,left:200,backgroundColor:'#e0e0f0',height:200,html:'<b>theHtmlTextInside</b>',_:[{t:'ul',html:'hello!',a:{type:'circle'}}]});
 

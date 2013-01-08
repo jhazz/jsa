@@ -24,7 +24,7 @@ var DEBUG=1;
 
 var ACTION_JSA_CONSOLE_REGENERATE = 1;
 var ACTION_JSA_CONSOLE_REARRANGE = 2;
-var ACTION_JSA_CREATE_CONTROL=3;
+var ACTION_JSA_PUT=3;
 var jsa,jsf;
 
 (function() {
@@ -112,10 +112,8 @@ var jsa,jsf;
 	*  {myClass}.superClass_.{inheritedMethod}.call(this);
 	*/
 	inherits : function (childConstructor, parentConstructor) {
-		// TODO(jhazz): check calling of superclass
 		/**
 		* @constructor
-		* @ignore
 		*/
 		function TempConstructor(){}
 		TempConstructor.prototype = parentConstructor.prototype;
@@ -199,15 +197,6 @@ var jsa,jsf;
 		jsa.mixin(loader, doNext, 1);
 		return loader;
 	},
-
-
-	/**
-	* Put log data in debug environment
-	* @param {String|Object} msg text logging to active console
-	* @param {Number=} warningMode means that text appear as warning in log
-	* @param {String} any text representing context of log
-	*/
-	log : function (msg, warningMode,contextName) {},
 
 	getUID : function (prefix) {
 		return (prefix || "id") + (jsa.lastUID++);
@@ -368,7 +357,7 @@ var jsa,jsf;
 				act.f=f=jsa.actionByCode[ac];
 			} else {
 				if((an=act.n)){
-					f=jsa.actionByName[an];
+					act.f=f=jsa.actionByName[an];
 					if(!f){
 						var parts = an.split('.'),
 							method = parts.pop(),
@@ -559,7 +548,7 @@ jsa.Frame=jsa.define({
         */
 		run : function (act) {
 			/** @this jsa.Frame */
-			act.win=this.win;
+
 			act.jsf = this;
 			return jsa.run(act);
 		},
@@ -762,8 +751,8 @@ jsa.on('load',function(){
 	if (CREATE_CONSOLE)	{
 		jsa.console.labIFrame=jsf.find("labiframe1");
 		jsa.console.init(window);
-		jsa.actionByCode[ACTION_JSA_CONSOLE_REGENERATE] = jsa.actionByName['jsa.console.regenerate'] = jsa.console.regenerate;
-		jsa.actionByCode[ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['jsa.console.rearrange'] = jsa.console.rearrange;
+		jsa.actionByCode[ACTION_JSA_CONSOLE_REGENERATE] = jsa.actionByName['.console.regenerate'] = jsa.console.regenerate;
+		jsa.actionByCode[ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['.console.rearrange'] = jsa.console.rearrange;
 		jsa.console.log('Console module starts');
 	}
 },window);
@@ -776,18 +765,26 @@ if (!COMPILED) {
 
 
 
-jsa.actionByCode[ACTION_JSA_CREATE_CONTROL] =
-jsa.actionByName['jsa.createControl']=
-jsa.createControl=function(a) {
-	var viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.pa;
-	var ctrl,cls=viewModel.ctrl||'Control',classDef=jsa[cls];
+jsa.actionByCode[ACTION_JSA_PUT] =
+jsa.actionByName['.put']=
+jsa.put=function(a) {
+	//var viewModel=a.vm, dataProvider=a.dp, htmlContainer=a.he, parentCtrl=a.pa;
+	var ctrl,vm,cls='Control',classDef;
+	vm=a.vm;
+	if(!vm){
+		if(DEBUG){
+			jsa.console.error('Put called without .vm parameter');
+		}
+		return;
+	}
+	cls=a.vm.ctrl||'Control',classDef=jsa[cls];
 	if(!classDef){
 		if(DEBUG){
-			jsa.console.log('Undefined class '+cls);
+			jsa.console.error('Undefined class jsa.'+cls);
 		}
 	}
 	ctrl=new (classDef)();
-	ctrl.put(viewModel,dataProvider,htmlContainer,parentCtrl);
+	ctrl.put(a);
 };
 
 
@@ -798,6 +795,11 @@ jsa.createControl=function(a) {
 jsa.Control=function(initData) {
 	this.width=50;
 	this.height=50;
+	this.minWidth=50;
+	this.minHeight=50;
+	this.x=this.y=0;
+	this.uid=jsa.getUID();
+	this.isVisible=true;
 	if(!!initData){
 		jsa.copy(this,initData);
 	}
@@ -806,24 +808,21 @@ jsa.Control=function(initData) {
 jsa.Control.prototype={
 	_className:"Control",
 
-	put:function(viewModel,dataProvider,htmlContainer,parentCtrl){
+	put:function(a){
 		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
-		var parentHeight,parentWidth,kc,l,htmlTag=viewModel.tag||'div',s,i,j,element=((!htmlContainer) ? jsf.doc : htmlContainer.ownerDocument).createElement(htmlTag);
-		//element.setAttribute('id', id);
-
-		this.viewModel=viewModel;
-		this.dataProvider=dataProvider;
-		this.parentCtrl=parentCtrl;
-		/** @type Element */
-		this.element=element;
-		/** @type Array[jsa.Control] */
-		this.kids=[];
-
+		var me=this,topHtmlContainer,viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
+		htmlTag=viewModel.tag||'div',s,i,j,doc=a.jsf.doc,
+		element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
+		me.viewModel=viewModel;
+		me.dataProvider=dataProvider;
+		me.parentCtrl=parentCtrl;
+		me.element=element;
+		me.kids=[];
 		if (!!viewModel.html) {
 			element.innerHTML=viewModel.html;
 		}
 		if (!!viewModel.thtml) {
-			element.innerHTML=jsa.parsedHTML(viewModel.thtml, this);
+			element.innerHTML=jsa.parsedHTML(viewModel.thtml, me);
 		}
 		for (i in viewModel) {
 			s = viewModel[i];
@@ -837,56 +836,79 @@ jsa.Control.prototype={
 					element.style[j]=s[j];
 				}
 			}else if (i=='borderSize') {
-				this.borderSize=s;
+				me.borderSize=s;
 			}else if (i=='width') {
-				this.width=s;
+				me.width=s;
 			}else if (i=='height') {
-				this.height=s;
-			}else if (i=='align') {
-				this.align=s;
+				me.height=s;
+			}else if (i=='side') {
+				me.side=s;
 			}
 		}
 
-		var htmlOwner=(document.compatMode=='CSS1Compat')?document.documentElement:document.body;
+		if((!parentCtrl)&&(!htmlContainer)){
+			me.topHtmlContainer=topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
+		}
+		
+		me.size();
 
+		if(!!(s=viewModel._)){
+			for (j in s){ // array of child elements
+				kc=s[j];
+				// TODO не хочу использовать Path и его выстраивание контролами. 
+				// Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
+				jsa.put({jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
+				}
+			}
+		if (!!parentCtrl){
+			parentCtrl.kids.push(me);
+			parentCtrl.arrangeKids();
+		}
+		if (!!htmlContainer) {
+			htmlContainer.appendChild(element);
+		}else{
+			doc.body.appendChild(element);
+			jsa.on('resize', function() {
+				me.size();
+				me.aid=this.uid+'_parentResized';
+				me.setPosSizeVisible();
+				me.arrangeKids();
+			}, a.jsf.win);
+		}
+	},
+
+	size:function(){
+		var w=this.w,h=this.h,l,htmlContainer=this.htmlContainer,s,parentWidth,
+		parentHeight,parentCtrl=this.parentCtrl;
 		s = this.width;
 		if (isFinite(s)) {
 			this.w = s;
 		} else {
-			jsa.console.info(document.compatMode);
-			needWatchForHtmlElement = htmlOwner;
-			jsa.on('resize', function() {
-				jsa.console.log('Html owner resized!');
-			}, htmlOwner);
-
-			if (!s || s == '100%') {
-				this.w = parentWidth;
-			} else {
-				if (s.charAt((l = s.length - 1)) == '%') {
-					if (!parentCtrl) {
-						if (!htmlContainer) {
-							parentWidth = htmlOwner.clientWidth;
-						} else
-							parentWidth = htmlContainer.clientWidth;
+			if (s.charAt((l = s.length - 1)) == '%') {
+				if (!parentCtrl) {
+					if (!htmlContainer) {
+						parentWidth = this.topHtmlContainer.clientWidth;
 					} else {
-						parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
+						parentWidth = htmlContainer.clientWidth;	
 					}
-					this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
 				} else {
-					this.w = parseInt(s);
+					parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
 				}
+				this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
+			} else {
+				this.w = parseInt(s);
 			}
+
 		}
 
 		s=this.height;
 		if(isFinite(s)){
 			this.h=s;
 		}else {
-			if(!s)s='100%';
 			if(s.charAt((l=s.length-1))=='%'){
 				if(!parentCtrl){
 					if (!htmlContainer){
-						parentHeight=htmlOwner.clientHeight;
+						parentHeight=this.topHtmlContainer.clientHeight;
 					} else parentHeight=htmlContainer.clientHeight;
 				}else{
 					parentHeight=parentCtrl.h-parentCtrl.borderSize*2;
@@ -896,24 +918,9 @@ jsa.Control.prototype={
 				this.h=parseInt(s);
 			}
 		}
-
-		if(!!(s=viewModel._)){
-			for (j in s){ // array of child elements
-				kc=s[j];
-				jsa.createControl(kc,dataProvider,element,this);
-				}
-			}
-		if (!!parentCtrl){
-			parentCtrl.kids.push(this);
-			parentCtrl.arrangeKids();
-		}
-		if (!!htmlContainer) {
-			htmlContainer.appendChild(element);
-		}else{
-		debugger;
-			jsf.doc.body.appendChild(element);
-		}
+		this.sizeChanged=((w!=this.w)||(h!=this.h));
 	},
+
 	setPosSizeVisible:function(){
 		var e=this.element;
 		if(!e)return;
@@ -930,34 +937,164 @@ jsa.Control.prototype={
 		}
 	},
 	arrangeKids:function(){
-		var i,c,vx1,vy1,vx2,vy2,bs=this.borderSize,ss=this.splitterSize||5;
+		var sp,spParams,spNeeded,spOn=1,me=this,i,dockSet,dockSide='N',prevc,c,vx1,vy1,vx2,vy2,
+		  bs=this.borderSize,ss=this.splitterSize||5,doc=me.element.ownerDocument;
+		if(!!me.splitters){
+			for (i in me.splitters) {
+				me.splitters[i].using=0;
+			}
+		}else{ 
+			me.splitters=[];
+		}
+	
+		function arrangeSet(){
+			var justadded,mul,ws,j,stackPos,a,l,isLast,side,isVertical,amount,maxThick;
+			if(!dockSet) {
+				return;
+			}
+
+			l=dockSet.length;
+			if (l>1) {
+				//debugger;
+			}
+			for (j=0 ; j<l ; j++){
+				a=dockSet[j];
+				if(!j){
+					side=a.side;
+					isVertical=(side=='W')||(side=='E')||(side=='M');
+					amount=0;
+					maxThick=0;
+				}
+			
+				if(isVertical){
+					if (a.width>maxThick) maxThick=a.width;
+					amount+=a.height;
+				} else {
+					if (a.height>maxThick) maxThick=a.height;
+					amount+=a.width;
+				}
+			}
+		
+			// window size 
+			ws=(isVertical)? vy2-vy1 : vx2-vx1;
+			mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
+			stackPos=(isVertical)?vy1:vx1;
+			for (j=0 ; j<l ; j++){
+				a=dockSet[j];
+				isLast=(j==(l-1));
+				spParams=false;
+				if(a.isVisible=(ws>0)) {
+					if (isVertical){
+						a.h=(isLast)?ws:Math.floor(a.height / mul);
+						if(a.h<a.minHeight) {
+							a.h=a.minHeight;
+						}
+						a.w=maxThick;
+						a.y=stackPos;
+						stackPos+=a.h+ss;
+						ws-=a.h+ss;
+					}else{
+						a.x=stackPos;
+						a.w=(isLast)?ws:Math.floor(a.width / mul);
+						if (a.w<a.minWidth) {
+							a.w=a.minWidth;
+						}
+						a.h=maxThick;
+						stackPos+=a.w+ss;
+						ws-=a.w+ss;
+					}
+					switch(side) {
+						case 'N': // North - top
+							a.y=vy1;
+							break;
+						case 'S':
+							a.y=vy2-maxThick;
+							break;
+						case 'E': // East - right
+							a.x=vx2-maxThick;
+							break;
+						case 'M':
+							a.w=vx2-vx1; // NO BREAK!
+						case 'W':
+							a.x=vx1;
+
+					}
+					if((!isLast) && (spOn)) {
+						if(isVertical) {
+							spParams={x:a.x, y:a.y+a.h ,w:a.w,h:ss,v:1};
+						} else {
+							spParams={x:a.x+a.w, y:a.y,w:ss,h:a.h,v:0};
+						}
+							
+					}
+				}
+					
+				a.setPosSizeVisible();
+				if(!!spParams){
+					if (!a.scaleSplitter){ 
+						a.scaleSplitter={using:1,control:a, htmlElement:doc.createElement('div')};
+						justadded=1;
+					} else justadded=0;
+					sp=a.scaleSplitter.htmlElement;
+					sp.style.position='absolute';
+					sp.style.backgroundColor='red';
+					sp.style.left=spParams.x+'px';
+					sp.style.top=spParams.y+'px';
+					sp.style.width=spParams.w+'px';
+					sp.style.height=spParams.h+'px';
+					sp.style.cursor=spParams.v?"row-resize":"col-resize";
+					//jsa.on('mousedown',);
+					if(justadded) {
+						me.element.appendChild(sp);
+					}
+				}
+			}
+			if (a.isVisible) switch(side) {
+				case 'N':
+					vy1+=maxThick+ss;
+					break;
+				case 'E':
+					vx2-=maxThick+ss;
+					break;
+				case 'W':
+					vx1+=maxThick+ss;
+					break;
+				case 'S':
+					vy2-=maxThick+ss;
+			}// M should be only last! Works like 'W'
+		
+		} // function
 		vx1=vy1=bs;
 		vx2=this.w-bs;
 		vy2=this.h-bs;
 
 		for(i in this.kids){
 			c=this.kids[i];
-			c.x=vx1;
-			c.y=vy1;
-			c.w=c.width;
-			c.h=c.height;
-
-			c.isVisible=(vx2>vx1)&&(vy2>vy1);
-			if (c.isVisible){
-				switch(c.align) {
-					case 'top':
-						c.w=vx2-vx1;
-						vy1 += c.h+ss;
-						break;
-					case 'right':
-						vx2-=c.w+ss;
-						c.x=vx2+ss;
-						c.h=vy2-vy1;
-						break;
+//			c.isVisible=(vx2>vx1)&&(vy2>vy1);
+//			if (c.isVisible){
+				if(c.side!='A'){ // Attached
+					arrangeSet(); // arrange previous set
+					dockSet=[c];
+				}else{
+					dockSet.push(c);
+				}
+//			}
+		}
+		arrangeSet();
+		
+		if (!!me.splitters){
+			
+			for (i=me.splitters.length-1;i>=0;i--) {
+				sp=me.splitters[i];
+				if (!sp.using){
+					sp.htmlElement.parentNode.removeChild(sp.htmlElement);
+					delete sp.htmlElement;
+					if ((!!sp.control)&&(sp.control.scaleSplitter)) delete sp.control.scaleSplitter;
+					delete me.splitters[i];
 				}
 			}
-			c.setPosSizeVisible();
 		}
+	
 	},
 
   /*  arrangeByParent:function(){
