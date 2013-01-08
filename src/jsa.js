@@ -124,8 +124,8 @@ var jsa,jsf;
 
 	/**
 	* Copy hash from source to destination
-	* @param {*} destination hash that values to be copied to
-	* @param {*} source hash
+	* @param {any} destination hash that values to be copied to
+	* @param {any} source hash
 	*/
 	copy : function (destination, source) {
 		var i;
@@ -141,7 +141,9 @@ var jsa,jsf;
 	},
 	/**
 	* Add event dispatcher to any DOM object
-	* @param {string} event name (i.e. 'load','click','mouseover')
+	* @param {string} eventName name (i.e. 'load','click','mouseover')
+	* @param {function} callback recieves event
+	* @param {HTMLElement} target element listener assigns to
 	*/
 	on:function(eventName,callback,target){
 		eventName=eventName.toLowerCase();
@@ -811,12 +813,17 @@ jsa.Control.prototype={
 	put:function(a){
 		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
 		var me=this,topHtmlContainer,viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
-		htmlTag=viewModel.tag||'div',s,i,j,doc=a.jsf.doc,
-		element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
+			htmlTag=viewModel.tag||'div',s,i,j,doc=a.jsf.doc,
+			element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag),
+			tx,ty,tw,th,tv;
 		me.viewModel=viewModel;
 		me.dataProvider=dataProvider;
 		me.parentCtrl=parentCtrl;
 		me.element=element;
+		me.borderSize=viewModel.borderSize||0;
+		me.padding=viewModel.padding||0;
+		me.width=viewModel.width||200;
+		me.height=viewModel.height||200;
 		me.kids=[];
 		if (!!viewModel.html) {
 			element.innerHTML=viewModel.html;
@@ -824,38 +831,28 @@ jsa.Control.prototype={
 		if (!!viewModel.thtml) {
 			element.innerHTML=jsa.parsedHTML(viewModel.thtml, me);
 		}
-		for (i in viewModel) {
-			s = viewModel[i];
-
-			if(i=='a') { // attrs
-				for (j in s) {
-					element.setAttribute(j, s[j]);
-				}
-			}else if(i=='s') { // style
-				for (j in s) {
-					element.style[j]=s[j];
-				}
-			}else if (i=='borderSize') {
-				me.borderSize=s;
-			}else if (i=='width') {
-				me.width=s;
-			}else if (i=='height') {
-				me.height=s;
-			}else if (i=='side') {
-				me.side=s;
+		if (!!(s=viewModel.a)){
+			for (j in s) {
+				element.setAttribute(j, s[j]);
 			}
 		}
+		me.side=viewModel.side;
 
+		if (!!(s=viewModel.s)){
+			for (j in s) {
+				element.style[j]=s[j];
+			}
+		}
 		if((!parentCtrl)&&(!htmlContainer)){
 			me.topHtmlContainer=topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
 		}
-		
+
 		me.size();
 
 		if(!!(s=viewModel._)){
 			for (j in s){ // array of child elements
 				kc=s[j];
-				// TODO не хочу использовать Path и его выстраивание контролами. 
+				// TODO не хочу использовать Path и его выстраивание контролами.
 				// Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
 				jsa.put({jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
 				}
@@ -889,16 +886,15 @@ jsa.Control.prototype={
 					if (!htmlContainer) {
 						parentWidth = this.topHtmlContainer.clientWidth;
 					} else {
-						parentWidth = htmlContainer.clientWidth;	
+						parentWidth = htmlContainer.clientWidth;
 					}
 				} else {
-					parentWidth = parentCtrl.w - parentCtrl.borderSize * 2;
+					parentWidth = parentCtrl.w - (parentCtrl.borderSize+parentCtrl.padding) * 2;
 				}
 				this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
 			} else {
 				this.w = parseInt(s);
 			}
-
 		}
 
 		s=this.height;
@@ -911,7 +907,7 @@ jsa.Control.prototype={
 						parentHeight=this.topHtmlContainer.clientHeight;
 					} else parentHeight=htmlContainer.clientHeight;
 				}else{
-					parentHeight=parentCtrl.h-parentCtrl.borderSize*2;
+					parentHeight=parentCtrl.h-(parentCtrl.borderSize+parentCtrl.padding)*2;
 				}
 				this.h=parseInt(s.substr(0,l))*parentHeight/100;
 			}else {
@@ -922,31 +918,36 @@ jsa.Control.prototype={
 	},
 
 	setPosSizeVisible:function(){
-		var e=this.element;
-		if(!e)return;
-		if((this.w<0)||(this.h<0)) this.isVisible=0;
-		if(!this.isVisible){
-			e.style.display='none';
-		}else{
-			e.style.position='absolute';
-			e.style.left=this.x+'px';
-			e.style.top=this.y+'px';
-			e.style.width=this.w+'px';
-			e.style.height=this.h+'px';
-			e.style.display='block';
+		var e=this.element,es,offset=(this.borderSize+this.padding)*2;
+		if(e) {
+			es=e.style;
+			if((this.w<0)||(this.h<0)) this.isVisible=0;
+			if(!this.isVisible){
+				es.display='none';
+			}else{
+				es.position='absolute';
+				es.left=this.x+'px';
+				es.top=this.y+'px';
+				if(!this.parentCtrl){
+//					debugger;
+				}
+				es.width= (this.w-offset)+'px';
+				es.height=(this.h-offset)+'px';
+				es.display='block';
+			}
 		}
 	},
 	arrangeKids:function(){
-		var sp,spParams,spNeeded,spOn=1,me=this,i,dockSet,dockSide='N',prevc,c,vx1,vy1,vx2,vy2,
-		  bs=this.borderSize,ss=this.splitterSize||5,doc=me.element.ownerDocument;
-		if(!!me.splitters){
-			for (i in me.splitters) {
-				me.splitters[i].using=0;
+		var needSplitter,sp,spOn=1,me=this,i,dockSet,c,vx1,vy1,vx2,vy2,tmp,
+			ss=this.splitterSize||5, doc=me.element.ownerDocument;
+		if(!!me.stretchSplitters){
+			for (i in me.stretchSplitters) {
+				me.stretchSplitters[i].using=0;
 			}
-		}else{ 
-			me.splitters=[];
+		}else{
+			me.stretchSplitters=[];
 		}
-	
+
 		function arrangeSet(){
 			var justadded,mul,ws,j,stackPos,a,l,isLast,side,isVertical,amount,maxThick;
 			if(!dockSet) {
@@ -965,7 +966,7 @@ jsa.Control.prototype={
 					amount=0;
 					maxThick=0;
 				}
-			
+
 				if(isVertical){
 					if (a.width>maxThick) maxThick=a.width;
 					amount+=a.height;
@@ -974,15 +975,15 @@ jsa.Control.prototype={
 					amount+=a.width;
 				}
 			}
-		
-			// window size 
+
+			// window size
 			ws=(isVertical)? vy2-vy1 : vx2-vx1;
 			mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
 			stackPos=(isVertical)?vy1:vx1;
 			for (j=0 ; j<l ; j++){
 				a=dockSet[j];
 				isLast=(j==(l-1));
-				spParams=false;
+				needSplitter=(!isLast) && (spOn);
 				if(a.isVisible=(ws>0)) {
 					if (isVertical){
 						a.h=(isLast)?ws:Math.floor(a.height / mul);
@@ -1017,32 +1018,30 @@ jsa.Control.prototype={
 							a.w=vx2-vx1; // NO BREAK!
 						case 'W':
 							a.x=vx1;
-
 					}
-					if((!isLast) && (spOn)) {
+					if(needSplitter) {
 						if(isVertical) {
-							spParams={x:a.x, y:a.y+a.h ,w:a.w,h:ss,v:1};
+							tx=a.x; ty=a.y+a.h; tw=a.w; th=ss; tv=1;
 						} else {
-							spParams={x:a.x+a.w, y:a.y,w:ss,h:a.h,v:0};
+							tx=a.x+a.w; ty=a.y; tw=ss; th=a.h; tv=0;
 						}
-							
 					}
-				}
-					
+				} else needSplitter=0;
+
 				a.setPosSizeVisible();
-				if(!!spParams){
-					if (!a.scaleSplitter){ 
+				if(needSplitter){
+					if (!a.scaleSplitter){
 						a.scaleSplitter={using:1,control:a, htmlElement:doc.createElement('div')};
 						justadded=1;
 					} else justadded=0;
 					sp=a.scaleSplitter.htmlElement;
 					sp.style.position='absolute';
 					sp.style.backgroundColor='red';
-					sp.style.left=spParams.x+'px';
-					sp.style.top=spParams.y+'px';
-					sp.style.width=spParams.w+'px';
-					sp.style.height=spParams.h+'px';
-					sp.style.cursor=spParams.v?"row-resize":"col-resize";
+					sp.style.left=tx+'px';
+					sp.style.top=ty+'px';
+					sp.style.width=tw+'px';
+					sp.style.height=th+'px';
+					sp.style.cursor=tv?"row-resize":"col-resize";
 					//jsa.on('mousedown',);
 					if(justadded) {
 						me.element.appendChild(sp);
@@ -1062,39 +1061,34 @@ jsa.Control.prototype={
 				case 'S':
 					vy2-=maxThick+ss;
 			}// M should be only last! Works like 'W'
-		
 		} // function
-		vx1=vy1=bs;
-		vx2=this.w-bs;
-		vy2=this.h-bs;
+		vx1=vy1=this.padding;
+		vx2=this.w-this.padding*2;
+		vy2=this.h-this.padding*2;
 
 		for(i in this.kids){
 			c=this.kids[i];
-//			c.isVisible=(vx2>vx1)&&(vy2>vy1);
-//			if (c.isVisible){
-				if(c.side!='A'){ // Attached
-					arrangeSet(); // arrange previous set
-					dockSet=[c];
-				}else{
-					dockSet.push(c);
-				}
-//			}
+			if(c.side!='A'){ // Attached
+				arrangeSet(); // arrange previous set
+				dockSet=[c];
+			}else{
+				dockSet.push(c);
+			}
 		}
 		arrangeSet();
-		
-		if (!!me.splitters){
-			
-			for (i=me.splitters.length-1;i>=0;i--) {
-				sp=me.splitters[i];
+
+		if (!!me.stretchSplitters){
+			for (i=me.stretchSplitters.length-1;i>=0;i--) {
+				sp=me.stretchSplitters[i];
 				if (!sp.using){
 					sp.htmlElement.parentNode.removeChild(sp.htmlElement);
 					delete sp.htmlElement;
-					if ((!!sp.control)&&(sp.control.scaleSplitter)) delete sp.control.scaleSplitter;
-					delete me.splitters[i];
+					if ((!!sp.control)&&(sp.control.stretchSplitter)) delete sp.control.stretchSplitters;
+					delete me.stretchSplitters[i];
 				}
 			}
 		}
-	
+
 	},
 
   /*  arrangeByParent:function(){

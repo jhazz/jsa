@@ -93,46 +93,79 @@ init:function(){
 
 	FX.vmodel1={
 		ctrl:'Control',
-		borderSize:5,
+		borderSize:2,
+		padding:4,
 		width:'100%',
 		height:'100%',
-		s:{background:'#e06060'},
+		s:{padding:'4px',border:'2px groove',background:'#888070'},
 		html:'<b>theHtmlTextInside</b>',
 		_:[{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#8000f0'},
+			s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
+			borderSize:1, padding:2,
 			html:'This is North',
 			side:'N'
 		},{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#a0f080'},
+			s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
+			borderSize:1, padding:2,
 			width:200,
 			height:10,
 			html:'This is East1',
-			side:'E'
+			side:'W'
 		},{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#a0f080'},
+			s:{border:'1px outset',background:'#faf2e0',padding:'2px'},
+			borderSize:1, padding:2,
 			width:250,
 			height:10,
 			html:'This is East2',
 			side:'A'
 		},{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#f0f080'},
+			s:{border:'1px outset',background:'#fff8f0',padding:'2px'},
+			borderSize:1, padding:2,
 			width:180,
 			height:10,
 			html:'This is East3',
-			side:'E'
+			side:'A'
 		},{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#f02020'},
-			html:'This is South',
+			s:{border:'1px outset',background:'#e4dad0',padding:'2px'},
+			borderSize:1, padding:2,
+			html:'This is East',
 			height:50,
-			side:'S'
+			width:300,
+			side:'E',
+			_:[{
+				ctrl:'Control',
+				s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
+				borderSize:1, padding:2,
+				html:'This is internal North',
+				side:'N'
+			},{
+				ctrl:'Control',
+				s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
+				borderSize:1, padding:2,
+				width:60,
+				height:10,
+				html:'This is internal East1',
+				side:'E'
+			},{
+				ctrl:'Control',
+				s:{border:'1px outset',background:'#faf2e0',padding:'2px'},
+				borderSize:1, padding:2,
+				width:50,
+				height:10,
+				html:'This is internal East2',
+				side:'A'
+			}
+				
+			]
 		},{
 			ctrl:'Control',
-			s:{border:'1px solid #80f080',background:'#f0f080'},
+			s:{border:'1px outset',background:'#fffaf6',padding:'2px'},
+			borderSize:1, padding:2,
 			html:'This is Middle',
 			height:20,
 			side:'M'
