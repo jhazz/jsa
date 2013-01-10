@@ -859,7 +859,7 @@ jsa.Control.prototype={
 			}
 		if (!!parentCtrl){
 			parentCtrl.kids.push(me);
-			parentCtrl.arrangeKids();
+			parentCtrl.arrangeKids(); // TODO убрать повторность вызова для каждого элемента в отдельности
 		}
 		if (!!htmlContainer) {
 			htmlContainer.appendChild(element);
@@ -949,7 +949,8 @@ jsa.Control.prototype={
 		}
 
 		function arrangeSet(){
-			var justadded,mul,ws,j,stackPos,a,l,isLast,side,isVertical,amount,maxThick;
+			var justadded,mul,ws,j,stackPos,a,l,isLast,side,isVertical,amount,
+				tx,ty,tw,th,tv,maxThick;
 			if(!dockSet) {
 				return;
 			}
@@ -1031,7 +1032,11 @@ jsa.Control.prototype={
 				a.setPosSizeVisible();
 				if(needSplitter){
 					if (!a.scaleSplitter){
-						a.scaleSplitter={using:1,control:a, htmlElement:doc.createElement('div')};
+						a.scaleSplitter={ 
+							using:1,
+							control:a, 
+							htmlElement:doc.createElement('div')
+						};
 						justadded=1;
 					} else justadded=0;
 					sp=a.scaleSplitter.htmlElement;
@@ -1091,23 +1096,6 @@ jsa.Control.prototype={
 
 	},
 
-  /*  arrangeByParent:function(){
-        var vm=this.viewModel,w,h,e,parentCtrl=this.parentCtrl;
-		debugger;
-        if(!parentCtrl){
-			w=this.width;
-			h=this.height;
-        }else {
-			w=parentCtrl.clientWidth;
-			h=parentCtrl.clientHeight;
-        }
-
-        if(vm.dock=='client'){
-            this.element.style.width =(this.width=w)+"px";
-            this.element.style.height=(this.height=h)+"px";
-        }
-
-    },*/
 	anchor:function(id){
 		return "[["+id+"_"+jsa.getUID()+"]]";
 	}
