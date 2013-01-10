@@ -937,9 +937,141 @@ jsa.Control.prototype={
 			}
 		}
 	},
+		/**
+		 * @param {type} dockSet array of docking controls
+		 * @param {type} boundary view limits
+		 * @param {type} spOn allow add splitters
+		 * @param {type} ss splitter size in pixels
+		 * @returns {unresolved}
+		 */
+	_arrangeSet:function(dockSet,boundary,spOn,ss){
+		var me=this,doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
+				amount,maxThick,tx,ty,tw,th,tv,sp;
+		if (!ss)ss=5;
+		if(!dockSet) {
+			return;
+		}
+
+		l=dockSet.length;
+		if (l>1) {
+			//debugger;
+		}
+		for (j=0 ; j<l ; j++){
+			a=dockSet[j];
+			if(!j){
+				side=a.side;
+				isVertical=(side=='W')||(side=='E')||(side=='M');
+				amount=0;
+				maxThick=0;
+			}
+
+			if(isVertical){
+				if (a.width>maxThick) maxThick=a.width;
+				amount+=a.height;
+			} else {
+				if (a.height>maxThick) maxThick=a.height;
+				amount+=a.width;
+			}
+		}
+
+		// window size
+		ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
+		mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
+		stackPos=(isVertical)?boundary.vy1:boundary.vx1;
+		for (j=0 ; j<l ; j++){
+			a=dockSet[j];
+			isLast=(j==(l-1));
+			needSplitter=(!isLast) && (spOn);
+			if(a.isVisible=(ws>0)) {
+				if (isVertical){
+					a.h=(isLast)?ws:Math.floor(a.height / mul);
+					if(a.h<a.minHeight) {
+						a.h=a.minHeight;
+					}
+					a.w=maxThick;
+					a.y=stackPos;
+					stackPos+=a.h+ss;
+					ws-=a.h+ss;
+				}else{
+					a.x=stackPos;
+					a.w=(isLast)?ws:Math.floor(a.width / mul);
+					if (a.w<a.minWidth) {
+						a.w=a.minWidth;
+					}
+					a.h=maxThick;
+					stackPos+=a.w+ss;
+					ws-=a.w+ss;
+				}
+				switch(side) {
+					case 'N': // North - top
+						a.y=boundary.vy1;
+						break;
+					case 'S':
+						a.y=boundary.vy2-maxThick;
+						break;
+					case 'E': // East - right
+						a.x=boundary.vx2-maxThick;
+						break;
+					case 'M':
+						a.w=boundary.vx2-boundary.vx1; // NO BREAK!
+					case 'W':
+						a.x=boundary.vx1;
+				}
+				if(needSplitter) {
+					if(isVertical) {
+						tx=a.x; ty=a.y+a.h; tw=a.w; th=ss; tv=1;
+					} else {
+						tx=a.x+a.w; ty=a.y; tw=ss; th=a.h; tv=0;
+					}
+				}
+			} else {
+				needSplitter=0;
+				jsa.console.info('not isVisible '+a.viewModel.html+" w="+a.w+' h='+a.h);
+
+			}
+
+			a.setPosSizeVisible();
+			if(needSplitter){
+				if (!a.scaleSplitter){
+					a.scaleSplitter={
+						using:1,
+						control:a,
+						htmlElement : doc.createElement('div')
+					};
+					justadded=1;
+				} else justadded=0;
+				sp=a.scaleSplitter.htmlElement;
+				sp.style.position='absolute';
+				sp.style.backgroundColor='red';
+				sp.style.left=tx+'px';
+				sp.style.top=ty+'px';
+				sp.style.width=tw+'px';
+				sp.style.height=th+'px';
+				sp.style.cursor=tv?"row-resize":"col-resize";
+				//jsa.on('mousedown',);
+				if(justadded) {
+					me.element.appendChild(sp);
+				}
+			}
+		}
+		if (a.isVisible) switch(side) {
+			case 'N':
+				boundary.vy1+=maxThick+ss;
+				break;
+			case 'E':
+				boundary.vx2-=maxThick+ss;
+				break;
+			case 'W':
+				boundary.vx1+=maxThick+ss;
+				break;
+			case 'S':
+				boundary.vy2-=maxThick+ss;
+		}// M should be only last! Works like 'W'
+	},
+
 	arrangeKids:function(){
-		var needSplitter,sp,spOn=1,me=this,i,dockSet,c,vx1,vy1,vx2,vy2,tmp,
-			ss=this.splitterSize||5, doc=me.element.ownerDocument;
+		var me=this,i,dockSet,c,tmp, sp,
+				boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
 		if(!!me.stretchSplitters){
 			for (i in me.stretchSplitters) {
 				me.stretchSplitters[i].using=0;
@@ -948,134 +1080,16 @@ jsa.Control.prototype={
 			me.stretchSplitters=[];
 		}
 
-		function arrangeSet(){
-			var justadded,mul,ws,j,stackPos,a,l,isLast,side,isVertical,amount,maxThick;
-			if(!dockSet) {
-				return;
-			}
-
-			l=dockSet.length;
-			if (l>1) {
-				//debugger;
-			}
-			for (j=0 ; j<l ; j++){
-				a=dockSet[j];
-				if(!j){
-					side=a.side;
-					isVertical=(side=='W')||(side=='E')||(side=='M');
-					amount=0;
-					maxThick=0;
-				}
-
-				if(isVertical){
-					if (a.width>maxThick) maxThick=a.width;
-					amount+=a.height;
-				} else {
-					if (a.height>maxThick) maxThick=a.height;
-					amount+=a.width;
-				}
-			}
-
-			// window size
-			ws=(isVertical)? vy2-vy1 : vx2-vx1;
-			mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
-			stackPos=(isVertical)?vy1:vx1;
-			for (j=0 ; j<l ; j++){
-				a=dockSet[j];
-				isLast=(j==(l-1));
-				needSplitter=(!isLast) && (spOn);
-				if(a.isVisible=(ws>0)) {
-					if (isVertical){
-						a.h=(isLast)?ws:Math.floor(a.height / mul);
-						if(a.h<a.minHeight) {
-							a.h=a.minHeight;
-						}
-						a.w=maxThick;
-						a.y=stackPos;
-						stackPos+=a.h+ss;
-						ws-=a.h+ss;
-					}else{
-						a.x=stackPos;
-						a.w=(isLast)?ws:Math.floor(a.width / mul);
-						if (a.w<a.minWidth) {
-							a.w=a.minWidth;
-						}
-						a.h=maxThick;
-						stackPos+=a.w+ss;
-						ws-=a.w+ss;
-					}
-					switch(side) {
-						case 'N': // North - top
-							a.y=vy1;
-							break;
-						case 'S':
-							a.y=vy2-maxThick;
-							break;
-						case 'E': // East - right
-							a.x=vx2-maxThick;
-							break;
-						case 'M':
-							a.w=vx2-vx1; // NO BREAK!
-						case 'W':
-							a.x=vx1;
-					}
-					if(needSplitter) {
-						if(isVertical) {
-							tx=a.x; ty=a.y+a.h; tw=a.w; th=ss; tv=1;
-						} else {
-							tx=a.x+a.w; ty=a.y; tw=ss; th=a.h; tv=0;
-						}
-					}
-				} else needSplitter=0;
-
-				a.setPosSizeVisible();
-				if(needSplitter){
-					if (!a.scaleSplitter){
-						a.scaleSplitter={using:1,control:a, htmlElement:doc.createElement('div')};
-						justadded=1;
-					} else justadded=0;
-					sp=a.scaleSplitter.htmlElement;
-					sp.style.position='absolute';
-					sp.style.backgroundColor='red';
-					sp.style.left=tx+'px';
-					sp.style.top=ty+'px';
-					sp.style.width=tw+'px';
-					sp.style.height=th+'px';
-					sp.style.cursor=tv?"row-resize":"col-resize";
-					//jsa.on('mousedown',);
-					if(justadded) {
-						me.element.appendChild(sp);
-					}
-				}
-			}
-			if (a.isVisible) switch(side) {
-				case 'N':
-					vy1+=maxThick+ss;
-					break;
-				case 'E':
-					vx2-=maxThick+ss;
-					break;
-				case 'W':
-					vx1+=maxThick+ss;
-					break;
-				case 'S':
-					vy2-=maxThick+ss;
-			}// M should be only last! Works like 'W'
-		} // function
-		vx1=vy1=this.padding;
-		vx2=this.w-this.padding*2;
-		vy2=this.h-this.padding*2;
-
 		for(i in this.kids){
 			c=this.kids[i];
 			if(c.side!='A'){ // Attached
-				arrangeSet(); // arrange previous set
+				this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
 				dockSet=[c];
 			}else{
 				dockSet.push(c);
 			}
 		}
-		arrangeSet();
+		this._arrangeSet(dockSet,boundary,1,5);
 
 		if (!!me.stretchSplitters){
 			for (i=me.stretchSplitters.length-1;i>=0;i--) {
@@ -1088,26 +1102,8 @@ jsa.Control.prototype={
 				}
 			}
 		}
-
 	},
 
-  /*  arrangeByParent:function(){
-        var vm=this.viewModel,w,h,e,parentCtrl=this.parentCtrl;
-		debugger;
-        if(!parentCtrl){
-			w=this.width;
-			h=this.height;
-        }else {
-			w=parentCtrl.clientWidth;
-			h=parentCtrl.clientHeight;
-        }
-
-        if(vm.dock=='client'){
-            this.element.style.width =(this.width=w)+"px";
-            this.element.style.height=(this.height=h)+"px";
-        }
-
-    },*/
 	anchor:function(id){
 		return "[["+id+"_"+jsa.getUID()+"]]";
 	}
