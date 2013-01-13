@@ -647,6 +647,7 @@ if(CREATE_CONSOLE) {
 			}
 		},
 
+
 		dump:function(o){
 			var i,s="",c=0;
 			for(i in o){
@@ -996,6 +997,7 @@ jsa.Control.prototype={
 		jsa.console.info('ws for '+a.viewModel.html+" is ");
 		jsa.console.info(ws,boundary);
 
+
 		jsa.console.info('...');
 		mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
 		stackPos=(isVertical)?boundary.vy1:boundary.vx1;
@@ -1049,6 +1051,7 @@ jsa.Control.prototype={
 				needSplitter=0;
 				jsa.console.info('not isVisible '+a.viewModel.html+" w="+a.w+' h='+a.h);
 
+
 			}
 
 			a.setPosSizeVisible();
@@ -1074,6 +1077,7 @@ jsa.Control.prototype={
 					me.element.appendChild(sp);
 				}
 			}
+
 		}
 		if (a.isVisible) switch(side) {
 			case 'N':
