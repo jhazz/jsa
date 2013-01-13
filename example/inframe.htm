@@ -82,18 +82,22 @@ var FX={
 init:function(){
 	// try
 	// FX.oFS=new ActiveXObject("Scripting.FileSystemObject");
-	FX.flashInbox=new jsa.Control({name:'Inbox папка на флэшке'});
+//	FX.flashInbox=new jsa.Control({name:'Inbox папка на флэшке'});
 /*	FX.flashOutbox=new jsa.Control({name:'Outbox папка на флэшке'});
 	FX.serverInbox=new jsa.Control({name:'Inbox папка на сервере'});
 	FX.serverOutbox=new jsa.Control({name:'Outbox папка на сервере'});*/
 
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
+	var splitter1=new jsa.Splitter({owner:inframe1});
+	//var splitter2=new jsa.Splitter({owner:inframe1});
+	debugger;
+	splitter1.put({minValue:1,maxValue:200});
 	FX.dataProvider1=new jsa.GridDataProvider();
 	FX.dataProvider1.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
 	FX.vmodel1={
-		ctrl:'Control',
+		ctrl:'DockPanel',
 		borderSize:2,
 		padding:4,
 		width:'100%',
@@ -101,13 +105,13 @@ init:function(){
 		s:{padding:'4px',border:'2px groove',background:'#888070'},
 		html:'<b>theHtmlTextInside</b>',
 		_:[{
-			ctrl:'Control',
+			ctrl:'DockPanel',
 			s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
 			borderSize:1, padding:2,
 			html:'This is North',
 			side:'N'
 		},{
-			ctrl:'Control',
+			ctrl:'DockPanel',
 			s:{border:'1px outset',background:'#e4dad0',padding:'2px'},
 			borderSize:1, padding:2,
 			html:'This is East',
@@ -115,13 +119,13 @@ init:function(){
 			width:300,
 			side:'E',
 			_:[{
-				ctrl:'Control',
+				ctrl:'DockPanel',
 				s:{border:'1px outset',background:'#c8f0e0',padding:'2px'},
 				borderSize:1, padding:2,
 				html:'This is internal North',
 				side:'N'
 			},{
-				ctrl:'Control',
+				ctrl:'DockPanel',
 				s:{border:'1px outset',background:'#c8f0e0',padding:'2px'},
 				borderSize:1, padding:2,
 				width:60,
@@ -129,7 +133,7 @@ init:function(){
 				html:'This is internal East1',
 				side:'E'
 			},{
-				ctrl:'Control',
+				ctrl:'DockPanel',
 				s:{border:'1px outset',background:'#caf2e0',padding:'2px'},
 				borderSize:1, padding:2,
 				width:50,
@@ -140,7 +144,7 @@ init:function(){
 				
 			]
 		},{
-			ctrl:'Control',
+			ctrl:'DockPanel',
 			s:{border:'1px outset',background:'#fffaf6',padding:'2px'},
 			borderSize:1, padding:2,
 			html:'This is Middle',

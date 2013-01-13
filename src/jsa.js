@@ -110,15 +110,12 @@ var jsa,jsf;
 	* @param {!Object} childConstructor that parentConstructor prototype applying to
 	* @param {!Object} parentConstructor gives prototype methods to child
 	* to call inherited do this:
-	*  {myClass}.superClass_.{inheritedMethod}.call(this);
+	*  {myClass}.superClass.{inheritedMethod}.call(this);
 	*/
 	inherits : function (childConstructor, parentConstructor) {
-		/**
-		* @constructor
-		*/
 		function TempConstructor(){}
 		TempConstructor.prototype = parentConstructor.prototype;
-		childConstructor._superClass = parentConstructor.prototype;
+		childConstructor.superClass = parentConstructor.prototype;
 		childConstructor.prototype = new TempConstructor();
 		childConstructor.prototype.constructor = childConstructor;
 	},
@@ -322,9 +319,6 @@ var jsa,jsf;
 			stage.hTimer = 0;
 		}
 	},
-
-		//jsa.registerModule({name:'sys.ui.Control',requires:['sys.ui.Data'],constructor:function(){}});
-
 
 	/**
 	* Asynchrous call the action or actions. If action is a set of actions run
@@ -540,6 +534,7 @@ jsa.Frame=jsa.define({
 		_.win=window;
 		_.doc=window.document;
 		_.jsa.frames[name]=_;
+		_.ownedObjects={};
 	},
 	methods:{
         /*
@@ -654,7 +649,7 @@ if(CREATE_CONSOLE) {
 				c++;if(c>100){
 					s+="[...]";break;
 				}
-				s+="."+i+"="+o[i]+"\n";
+				s+="."+i+"="+o[i]+" ";
 			}return s;
 		},
 
@@ -694,17 +689,22 @@ if(CREATE_CONSOLE) {
 						s+="<td class='log'>"+v[j]+"</td>";
 					}
 					if(logEntry[3]>0){
-						s="<td class='log' width='"+(logEntry[3]*10)+"'>&nbsp;</td>"+s;
+						s="<td class='log' width='1%'>&nbsp;</td>"+s;
 					}
-					s="<table cellspacing=0 cellpadding=0 border=0><tr>"+s+"</tr></table><br/>";
+					s="<table frame='void' bordercolor='#e0e0e0' cellspacing=0 width='100%' cellpadding=1 border=1><tr>"+s+"</tr></table>";
 					e.innerHTML=s;
 					df.appendChild(e);
 				}
-			_.lastAdded=i;
-			_.consoleLog.appendChild(df);
+				_.lastAdded=i;
+				_.consoleLog.appendChild(df);
+				if(_.consoleLog.scrollHeight) {
+					_.consoleLog.scrollTop=_.consoleLog.scrollHeight;
+				}
 			}
 		},
 		rearrange:function (act) {
+							jsa.console.log("----------");
+
 			var _=act._, b=_.container, w=b.clientWidth, h=b.clientHeight, pw,ph, ls,
 				stMonitor=_.consoleMonitor.style, lab=_.labIFrame, stLab, stLog=_.consoleLog.style,
 				stWatch=_.consoleWatch.style, o=_.options,borderSize=o.pBorderSize,spacing=o.pSpacing,mmHeight=o.mainMenuHeight;
@@ -787,8 +787,7 @@ if (!COMPILED) {
 jsa.actionByCode[ACTION_JSA_PUT] =
 jsa.actionByName['.put']=
 jsa.put=function(a) {
-	//var viewModel=a.vm, dataProvider=a.dp, htmlContainer=a.he, parentCtrl=a.pa;
-	var ctrl,vm,cls='Control',classDef;
+	var ctrl,vm,cls='',classDef;
 	vm=a.vm;
 	if(!vm){
 		if(DEBUG){
@@ -796,22 +795,81 @@ jsa.put=function(a) {
 		}
 		return;
 	}
-	cls=a.vm.ctrl||'Control',classDef=jsa[cls];
-	if(!classDef){
+	cls=a.vm.ctrl;
+	if(!cls){
+		if (DEBUG){
+			debugger;
+			jsa.console.error('Cannot put control without .ctrl field set in ViewModel');
+		}
+		return;
+	}
+	classDef=jsa[cls];
+	if(!!classDef){
+		ctrl=new (classDef)({owner:a.jsf});
+		ctrl.put(a);
+	} else {
 		if(DEBUG){
 			jsa.console.error('Undefined class jsa.'+cls);
 		}
 	}
-	ctrl=new (classDef)();
-	ctrl.put(a);
 };
 
 
+jsa.Control=function(initData){
+	this.id=jsa.getUID(this.className);
+	if(!!initData){
+		jsa.copy(this,initData);
+	}
+	if(!!this.owner) {
+		this.owner.ownedObjects[this.id]=this;
+	}else{
+		if(DEBUG){
+			debugger;
+			jsa.console.warn("Created "+this.className+" without reference to owner. It means memory leaks");
+		}
+	}
+};
+
+jsa.Control.prototype={
+	className:'Control',
+	constructor: jsa.Control,
+	destroy:function(){
+		var i,c;
+		for(i in this.ownedObjects){
+			c=this.ownedObjects[i];
+			c.destroy();
+			delete this.ownedObjects[i];
+		}
+	},
+	put:function(a){
+		console.log('.Control.put called')
+	}
+};
+
+
+jsa.Splitter=function(initData){
+	debugger;
+	this.superClass.constructor.call(this,initData);
+};
+//debugger;
+jsa.Splitter.prototype = Object.create(jsa.Control.prototype);
+jsa.Splitter.prototype.constructor=jsa.Splitter;
+jsa.Splitter.prototype.className='Splitter';
+jsa.Splitter.prototype.superClass=jsa.Control.prototype;
+jsa.Splitter.prototype.put=function(a){
+	console.log('.Splitter.put called')
+	this.superClass.put.call(this,a);
+};
+
+
+//jsa.inherits(jsa.Splitter,jsa.Control);
+
+
 /**
- * @class jsa.Control
+ * @class jsa.DockPanel
  * @param {Object} initData Initial control's data
  */
-jsa.Control=function(initData) {
+jsa.DockPanel=function(initData) {
 	this.width=50;
 	this.height=50;
 	this.minWidth=50;
@@ -824,15 +882,14 @@ jsa.Control=function(initData) {
 	}
 
 };
-jsa.Control.prototype={
-	_className:"Control",
+jsa.DockPanel.prototype={
+	className:"DockPanel",
 
 	put:function(a){
 		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
 		var me=this,topHtmlContainer,viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
 			htmlTag=viewModel.tag||'div',s,i,j,doc=a.jsf.doc,
-			element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag),
-			tx,ty,tw,th,tv;
+			element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
 		me.viewModel=viewModel;
 		me.dataProvider=dataProvider;
 		me.parentCtrl=parentCtrl;
@@ -871,7 +928,7 @@ jsa.Control.prototype={
 				kc=s[j];
 				// TODO не хочу использовать Path и его выстраивание контролами.
 				// Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
-				jsa.put({jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
+				jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
 				}
 			}
 		if (!!parentCtrl){
@@ -922,7 +979,6 @@ jsa.Control.prototype={
 				if(!parentCtrl){
 					if (!htmlContainer){
 						parentHeight=this.topHtmlContainer.clientHeight;
-						jsa.console.log("----------");
 					} else parentHeight=htmlContainer.clientHeight;
 				}else{
 					parentHeight=parentCtrl.h-(parentCtrl.borderSize+parentCtrl.padding)*2;
@@ -996,9 +1052,6 @@ jsa.Control.prototype={
 		ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
 		jsa.console.info('ws for '+a.viewModel.html+" is ");
 		jsa.console.info(ws,boundary);
-
-
-		jsa.console.info('...');
 		mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
 		stackPos=(isVertical)?boundary.vy1:boundary.vx1;
 		for (j=0 ; j<l ; j++){
@@ -1054,6 +1107,7 @@ jsa.Control.prototype={
 
 			}
 
+			a.arrangeKids();
 			a.setPosSizeVisible();
 			if(needSplitter){
 				if (!a.scaleSplitter){
