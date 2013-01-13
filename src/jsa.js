@@ -1,4 +1,5 @@
 /**
+ * NEWEST
  * @fileoverview The main module file
  * Loads in the topmost window and carry all libraries using by the child frames
  * @author Vlad Zbitnev
@@ -645,6 +646,17 @@ if(CREATE_CONSOLE) {
 				_.curGroupIndent--;
 			}
 		},
+
+		dump:function(o){
+			var i,s="",c=0;
+			for(i in o){
+				c++;if(c>100){
+					s+="[...]";break;
+				}
+				s+="."+i+"="+o[i]+"\n";
+			}return s;
+		},
+
 		/**
 		 * Push array of args from log wrapper function to the log
 		 * @param {Array} args
@@ -653,7 +665,11 @@ if(CREATE_CONSOLE) {
 		addLog :function (args, mode) {
 			var i,v=[],_ = this,logEntry=[];
 			for(i=0;i<args.length;i++){
-				v.push(args[i].toString());
+				if(typeof args[i]=='object'){
+					v.push(this.dump(args[i]));
+				} else {
+					v.push(args[i].toString());
+				}
 			}
 			logEntry=[v, mode, _.curGroupEntry, _.curGroupIndent];
 			if(mode==5){_.curGroupEntry=_.logData.length;_.curGroupIndent++;}
@@ -679,7 +695,7 @@ if(CREATE_CONSOLE) {
 					if(logEntry[3]>0){
 						s="<td class='log' width='"+(logEntry[3]*10)+"'>&nbsp;</td>"+s;
 					}
-					s="<table cellspacing=0 cellpadding=0 border=0><tr>"+s+"</tr></table>";
+					s="<table cellspacing=0 cellpadding=0 border=0><tr>"+s+"</tr></table><br/>";
 					e.innerHTML=s;
 					df.appendChild(e);
 				}
@@ -905,6 +921,7 @@ jsa.Control.prototype={
 				if(!parentCtrl){
 					if (!htmlContainer){
 						parentHeight=this.topHtmlContainer.clientHeight;
+						jsa.console.log("----------");
 					} else parentHeight=htmlContainer.clientHeight;
 				}else{
 					parentHeight=parentCtrl.h-(parentCtrl.borderSize+parentCtrl.padding)*2;
@@ -976,6 +993,10 @@ jsa.Control.prototype={
 
 		// window size
 		ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
+		jsa.console.info('ws for '+a.viewModel.html+" is ");
+		jsa.console.info(ws,boundary);
+
+		jsa.console.info('...');
 		mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
 		stackPos=(isVertical)?boundary.vy1:boundary.vx1;
 		for (j=0 ; j<l ; j++){
