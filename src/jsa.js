@@ -815,24 +815,7 @@ jsa.put=function(a) {
 };
 
 
-jsa.Control=function(initData){
-	this.id=jsa.getUID(this.className);
-	if(!!initData){
-		jsa.copy(this,initData);
-	}
-	if(!!this.owner) {
-		this.owner.ownedObjects[this.id]=this;
-	}else{
-		if(DEBUG){
-			debugger;
-			jsa.console.warn("Created "+this.className+" without reference to owner. It means memory leaks");
-		}
-	}
-};
-
-jsa.Control.prototype={
-	className:'Control',
-	constructor: jsa.Control,
+(jsa.Control=function(){}).prototype={
 	destroy:function(){
 		var i,c;
 		for(i in this.ownedObjects){
@@ -842,28 +825,40 @@ jsa.Control.prototype={
 		}
 	},
 	put:function(a){
+		this.id=jsa.getUID(typeof this);
+		if(!!a.owner) {
+			a.owner.ownedObjects[this.id]=this;
+		}else{
+			if(DEBUG){
+				debugger;
+				jsa.console.warn("Created "+(typeof this)+" without reference to owner. It means memory leaks");
+			}
+		}
+
 		console.log('.Control.put called')
 	}
 };
 
-
-jsa.Splitter=function(initData){
-	debugger;
-	this.superClass.constructor.call(this,initData);
-};
-//debugger;
-jsa.Splitter.prototype = Object.create(jsa.Control.prototype);
-jsa.Splitter.prototype.constructor=jsa.Splitter;
-jsa.Splitter.prototype.className='Splitter';
-jsa.Splitter.prototype.superClass=jsa.Control.prototype;
+debugger;
+(jsa.Splitter=function(){}).prototype = new jsa.Control();
+jsa.Splitter.prototype.super=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
 	console.log('.Splitter.put called')
-	this.superClass.put.call(this,a);
+	this.super.put.call(this,a)
 };
 
 
 //jsa.inherits(jsa.Splitter,jsa.Control);
-
+/*
+ *
+	inherits : function (childConstructor, parentConstructor) {
+		function TempConstructor(){}
+		TempConstructor.prototype = parentConstructor.prototype;
+		childConstructor.superClass = parentConstructor.prototype;
+		childConstructor.prototype = new TempConstructor();
+		childConstructor.prototype.constructor = childConstructor;
+	},
+ */
 
 /**
  * @class jsa.DockPanel
