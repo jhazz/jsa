@@ -26,10 +26,8 @@ var DEBUG=1;
 var ACTION_JSA_CONSOLE_REGENERATE = 1;
 var ACTION_JSA_CONSOLE_REARRANGE = 2;
 var ACTION_JSA_PUT=3;
-var jsa,jsf;
-
-(function() {
-	jsa={
+var jsf;
+var jsa={
 	/** @type {Object} */
 	modules : {},
 	/** @type {Object}*/
@@ -364,7 +362,6 @@ var jsa,jsf;
 							// Deferred call
 							// Module with this namespace like 'ui.control.Button' has not been loaded
 							// Let's check if it does not loading  '{libURL}/ui/control/button.js'
-
 							if (!jsa.moduleLoaders[moduleName]) {
 								// if module file didn't enqueued to loading let's load it
 								act.stillLoading=1;
@@ -418,6 +415,7 @@ var jsa,jsf;
 	* @param {HTMLElement=} into HTML element to put newly created element inside
 	* @param {String=} tpl html template
 	* @param {Object=} scopeObject object that provide its vars or methods. If object is none tpl is stay unparsed
+	* @returns undefined
 	*/
 	createDiv : function (id, attrs, into, tpl, scopeObject) {
 		var s,i,j,	c = ((!!into) ? into.ownerDocument : jsa.doc).createElement('div');
@@ -454,8 +452,9 @@ var jsa,jsf;
 	* @param {string} eventName shortened event name
 	* @param {object} subObj subscriber object that subscribing to publishing event notify
 	* @param {function} subMethod subscriber object method activating by callback
+	* @return {boolean} success
 	*/
-	sub:function(pubObj,eventName,subObj,subMethod) {
+	sub: function (pubObj,eventName,subObj,subMethod) {
 		var v,evs,subs;
 		if(!pubObj.name){
 			jsa.console.error('sub: pubObj has no name');
@@ -477,6 +476,7 @@ var jsa,jsf;
 		if(!v){
 			v=evs[eventName]=[subObj,subMethod];
 		}
+		return true;
 	},
 
 	pub:function(pubObj,eventName,eargs) {
@@ -493,7 +493,6 @@ var jsa,jsf;
 		}
 	}
 };
-})();
 
 
 /**
@@ -701,6 +700,7 @@ if(CREATE_CONSOLE) {
 					_.consoleLog.scrollTop=_.consoleLog.scrollHeight;
 				}
 			}
+			return false;
 		},
 		rearrange:function (act) {
 							jsa.console.log("----------");
@@ -1033,7 +1033,6 @@ jsa.DockPanel.prototype={
 				amount=0;
 				maxThick=0;
 			}
-
 			if(isVertical){
 				if (a.width>maxThick) maxThick=a.width;
 				amount+=a.height;
@@ -1042,7 +1041,6 @@ jsa.DockPanel.prototype={
 				amount+=a.width;
 			}
 		}
-
 		// window size
 		ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
 		jsa.console.info('ws for '+a.viewModel.html+" is ");
@@ -1053,7 +1051,7 @@ jsa.DockPanel.prototype={
 			a=dockSet[j];
 			isLast=(j==(l-1));
 			needSplitter=(!isLast) && (spOn);
-			if(a.isVisible=(ws>0)) {
+			if((a.isVisible=(ws>0))) {
 				if (isVertical){
 					a.h=(isLast)?ws:Math.floor(a.height / mul);
 					if(a.h<a.minHeight) {
@@ -1182,30 +1180,4 @@ jsa.DockPanel.prototype={
 		return "[["+id+"_"+jsa.getUID()+"]]";
 	}
 };
-
-/*
-
-	// define a new type SkinnedMesh and a constructor for it
-function SkinnedMesh(geometry, materials) {
-  // call the superclass constructor
-  THREE.Mesh.call(this, geometry, materials);
-
-  // initialize instance properties
-  this.identityMatrix = new THREE.Matrix4();
-  this.bones = [];
-  this.boneMatrices = [];
-  ...
-};
-
-// inherit behavior from Mesh
-SkinnedMesh.prototype = Object.create(THREE.Mesh.prototype);
-SkinnedMesh.prototype.constructor = SkinnedMesh;
-
-// define an overridden update() method
-SkinnedMesh.prototype.update = function(camera) {
-  ...
-  // call base version of same method
-  THREE.Mesh.prototype.update.call(this);
-};
-*/
 

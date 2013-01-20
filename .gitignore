@@ -5,3 +5,5 @@ DEVELOP.txt
 MASTER.txt
 /htdocs/nbproject/*
 nbproject/*
+*.komodoproject
+/.komodotools/
