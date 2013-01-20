@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:jsa="JSA">
 <head>
 	<!-- NEWEST -->
-<meta charset="utf-8">
+<meta charset="utf-8"/>
 <style>
 	td,body {font-family:arial; font-size:10px;}
 	folderPanel {font-size:10px;border:solid 1px; }
@@ -89,10 +89,10 @@ init:function(){
 
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
-	var splitter1=new jsa.Splitter({owner:inframe1});
+	var splitter1=new jsa.Splitter();
 	//var splitter2=new jsa.Splitter({owner:inframe1});
 	debugger;
-	splitter1.put({minValue:1,maxValue:200});
+	splitter1.put({owner:inframe1,minValue:1,maxValue:200});
 	FX.dataProvider1=new jsa.GridDataProvider();
 	FX.dataProvider1.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
@@ -273,8 +273,8 @@ var jsat = setInterval(function () {
 </script>
 
 
-<br><br><br>
-<a href='javascript:startLogDemo()'>Start demo</a> | <a href='javascript:stopLogDemo()'>Stop demo</a><a href='javascript:startLogDemo()'>Start demo</a> | <a href='javascript:stopLogDemo()'>Stop demo</a>
-</body>
+<br/><br/><br/>
+<a href='javascript:startLogDemo()'>Start demo</a> | <a href='javascript:stopLogDemo()'>Stop demo</a>
 
+</body>
 </html>

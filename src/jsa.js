@@ -782,13 +782,14 @@ if (!COMPILED) {
 }
 
 
-
-
 jsa.actionByCode[ACTION_JSA_PUT] =
 jsa.actionByName['.put']=
 jsa.put=function(a) {
 	var ctrl,vm,cls='',classDef;
 	vm=a.vm;
+    if(!a.owner) {
+        owner=a.jsf;
+    }
 	if(!vm){
 		if(DEBUG){
 			jsa.console.error('Put called without .vm parameter');
@@ -805,7 +806,7 @@ jsa.put=function(a) {
 	}
 	classDef=jsa[cls];
 	if(!!classDef){
-		ctrl=new (classDef)({owner:a.jsf});
+		ctrl=new (classDef)();
 		ctrl.put(a);
 	} else {
 		if(DEBUG){
@@ -825,6 +826,7 @@ jsa.put=function(a) {
 		}
 	},
 	put:function(a){
+        this.x=this.y=0;
 		this.id=jsa.getUID(typeof this);
 		if(!!a.owner) {
 			a.owner.ownedObjects[this.id]=this;
@@ -834,12 +836,10 @@ jsa.put=function(a) {
 				jsa.console.warn("Created "+(typeof this)+" without reference to owner. It means memory leaks");
 			}
 		}
-
 		console.log('.Control.put called')
 	}
 };
 
-debugger;
 (jsa.Splitter=function(){}).prototype = new jsa.Control();
 jsa.Splitter.prototype.super=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
@@ -847,337 +847,316 @@ jsa.Splitter.prototype.put=function(a){
 	this.super.put.call(this,a)
 };
 
+(jsa.DockPanel=function(){}).prototype = new jsa.Control();
 
-//jsa.inherits(jsa.Splitter,jsa.Control);
-/*
- *
-	inherits : function (childConstructor, parentConstructor) {
-		function TempConstructor(){}
-		TempConstructor.prototype = parentConstructor.prototype;
-		childConstructor.superClass = parentConstructor.prototype;
-		childConstructor.prototype = new TempConstructor();
-		childConstructor.prototype.constructor = childConstructor;
-	},
- */
+jsa.DockPanel.prototype.put=function(a) {
+    // viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
+    var me=this,topHtmlContainer,viewModel=a.vm,
+        dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
+        htmlTag=viewModel.tag||'div',s,i,j,doc,element;
+        
+    this.super.put.call(this,a)
+    doc=a.jsf.doc;
+    element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
+    me.minWidth=50;
+    me.minHeight=50;
+    me.isVisible=true;
+    
+    
+    me.viewModel=viewModel;
+    me.dataProvider=dataProvider;
+    me.parentCtrl=parentCtrl;
+    me.element=element;
+    me.borderSize=viewModel.borderSize||0;
+    me.padding=viewModel.padding||0;
+    me.width=viewModel.width||200;
+    me.height=viewModel.height||200;
+    me.kids=[];
+    if (!!viewModel.html) {
+        element.innerHTML=viewModel.html;
+    }
+    if (!!viewModel.thtml) {
+        element.innerHTML=jsa.parsedHTML(viewModel.thtml, me);
+    }
+    if (!!(s=viewModel.a)){
+        for (j in s) {
+            element.setAttribute(j, s[j]);
+        }
+    }
+    me.side=viewModel.side;
 
-/**
- * @class jsa.DockPanel
- * @param {Object} initData Initial control's data
- */
-jsa.DockPanel=function(initData) {
-	this.width=50;
-	this.height=50;
-	this.minWidth=50;
-	this.minHeight=50;
-	this.x=this.y=0;
-	this.uid=jsa.getUID();
-	this.isVisible=true;
-	if(!!initData){
-		jsa.copy(this,initData);
-	}
+    if (!!(s=viewModel.s)){
+        for (j in s) {
+            element.style[j]=s[j];
+        }
+    }
+    if((!parentCtrl)&&(!htmlContainer)){
+        me.topHtmlContainer=topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
+    }
 
+    me.size();
+
+    if(!!(s=viewModel._)){
+        for (j in s){ // array of child elements
+            kc=s[j];
+            // TODO не хочу использовать Path и его выстраивание контролами.
+            // Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
+            jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
+            }
+        }
+    if (!!parentCtrl){
+        parentCtrl.kids.push(me);
+        parentCtrl.arrangeKids();
+    }
+    if (!!htmlContainer) {
+        htmlContainer.appendChild(element);
+    }else{
+        doc.body.appendChild(element);
+        jsa.on('resize', function() {
+            me.size();
+            me.aid=this.uid+'_parentResized';
+            me.setPosSizeVisible();
+            me.arrangeKids();
+        }, a.jsf.win);
+    }
 };
-jsa.DockPanel.prototype={
-	className:"DockPanel",
 
-	put:function(a){
-		// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
-		var me=this,topHtmlContainer,viewModel=a.vm,dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
-			htmlTag=viewModel.tag||'div',s,i,j,doc=a.jsf.doc,
-			element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
-		me.viewModel=viewModel;
-		me.dataProvider=dataProvider;
-		me.parentCtrl=parentCtrl;
-		me.element=element;
-		me.borderSize=viewModel.borderSize||0;
-		me.padding=viewModel.padding||0;
-		me.width=viewModel.width||200;
-		me.height=viewModel.height||200;
-		me.kids=[];
-		if (!!viewModel.html) {
-			element.innerHTML=viewModel.html;
-		}
-		if (!!viewModel.thtml) {
-			element.innerHTML=jsa.parsedHTML(viewModel.thtml, me);
-		}
-		if (!!(s=viewModel.a)){
-			for (j in s) {
-				element.setAttribute(j, s[j]);
-			}
-		}
-		me.side=viewModel.side;
 
-		if (!!(s=viewModel.s)){
-			for (j in s) {
-				element.style[j]=s[j];
-			}
-		}
-		if((!parentCtrl)&&(!htmlContainer)){
-			me.topHtmlContainer=topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
-		}
+jsa.DockPanel.prototype.size=function() {
+    var w=this.w,h=this.h,l,htmlContainer=this.htmlContainer,s,parentWidth,
+    parentHeight,parentCtrl=this.parentCtrl;
+    s = this.width;
+    if (isFinite(s)) {
+        this.w = s;
+    } else {
+        if (s.charAt((l = s.length - 1)) == '%') {
+            if (!parentCtrl) {
+                if (!htmlContainer) {
+                    parentWidth = this.topHtmlContainer.clientWidth;
+                } else {
+                    parentWidth = htmlContainer.clientWidth;
+                }
+            } else {
+                parentWidth = parentCtrl.w - (parentCtrl.borderSize+parentCtrl.padding) * 2;
+            }
+            this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
+        } else {
+            this.w = parseInt(s);
+        }
+    }
 
-		me.size();
+    s=this.height;
+    if(isFinite(s)){
+        this.h=s;
+    }else {
+        if(s.charAt((l=s.length-1))=='%'){
+            if(!parentCtrl){
+                if (!htmlContainer){
+                    parentHeight=this.topHtmlContainer.clientHeight;
+                } else parentHeight=htmlContainer.clientHeight;
+            }else{
+                parentHeight=parentCtrl.h-(parentCtrl.borderSize+parentCtrl.padding)*2;
+            }
+            this.h=parseInt(s.substr(0,l))*parentHeight/100;
+        }else {
+            this.h=parseInt(s);
+        }
+    }
+    this.sizeChanged=((w!=this.w)||(h!=this.h));
+};
 
-		if(!!(s=viewModel._)){
-			for (j in s){ // array of child elements
-				kc=s[j];
-				// TODO не хочу использовать Path и его выстраивание контролами.
-				// Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
-				jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
-				}
-			}
-		if (!!parentCtrl){
-			parentCtrl.kids.push(me);
-			parentCtrl.arrangeKids();
-		}
-		if (!!htmlContainer) {
-			htmlContainer.appendChild(element);
-		}else{
-			doc.body.appendChild(element);
-			jsa.on('resize', function() {
-				me.size();
-				me.aid=this.uid+'_parentResized';
-				me.setPosSizeVisible();
-				me.arrangeKids();
-			}, a.jsf.win);
-		}
-	},
-
-	size:function(){
-		var w=this.w,h=this.h,l,htmlContainer=this.htmlContainer,s,parentWidth,
-		parentHeight,parentCtrl=this.parentCtrl;
-		s = this.width;
-		if (isFinite(s)) {
-			this.w = s;
-		} else {
-			if (s.charAt((l = s.length - 1)) == '%') {
-				if (!parentCtrl) {
-					if (!htmlContainer) {
-						parentWidth = this.topHtmlContainer.clientWidth;
-					} else {
-						parentWidth = htmlContainer.clientWidth;
-					}
-				} else {
-					parentWidth = parentCtrl.w - (parentCtrl.borderSize+parentCtrl.padding) * 2;
-				}
-				this.w = parseInt(s.substr(0, l)) * parentWidth / 100;
-			} else {
-				this.w = parseInt(s);
-			}
-		}
-
-		s=this.height;
-		if(isFinite(s)){
-			this.h=s;
-		}else {
-			if(s.charAt((l=s.length-1))=='%'){
-				if(!parentCtrl){
-					if (!htmlContainer){
-						parentHeight=this.topHtmlContainer.clientHeight;
-					} else parentHeight=htmlContainer.clientHeight;
-				}else{
-					parentHeight=parentCtrl.h-(parentCtrl.borderSize+parentCtrl.padding)*2;
-				}
-				this.h=parseInt(s.substr(0,l))*parentHeight/100;
-			}else {
-				this.h=parseInt(s);
-			}
-		}
-		this.sizeChanged=((w!=this.w)||(h!=this.h));
-	},
-
-	setPosSizeVisible:function(){
-		var e=this.element,es,offset=(this.borderSize+this.padding)*2;
-		if(e) {
-			es=e.style;
-			if((this.w<0)||(this.h<0)) this.isVisible=0;
-			if(!this.isVisible){
-				es.display='none';
-			}else{
-				es.position='absolute';
-				es.left=this.x+'px';
-				es.top=this.y+'px';
-				if(!this.parentCtrl){
+jsa.DockPanel.prototype.setPosSizeVisible=function(){
+    var e=this.element,es,offset=(this.borderSize+this.padding)*2;
+    if(e) {
+        es=e.style;
+        if((this.w<0)||(this.h<0)) this.isVisible=0;
+        if(!this.isVisible){
+            es.display='none';
+        }else{
+            es.position='absolute';
+            es.left=this.x+'px';
+            es.top=this.y+'px';
+            if(!this.parentCtrl){
 //					debugger;
-				}
-				es.width= (this.w-offset)+'px';
-				es.height=(this.h-offset)+'px';
-				es.display='block';
-			}
-		}
-	},
-		/**
-		 * @param {type} dockSet array of docking controls
-		 * @param {type} boundary view limits
-		 * @param {type} spOn allow add splitters
-		 * @param {type} ss splitter size in pixels
-		 * @returns {unresolved}
-		 */
-	_arrangeSet:function(dockSet,boundary,spOn,ss){
-		var me=this,doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
-				amount,maxThick,tx,ty,tw,th,tv,sp;
-		if (!ss)ss=5;
-		if(!dockSet) {
-			return;
-		}
-
-		l=dockSet.length;
-		if (l>1) {
-			//debugger;
-		}
-		for (j=0 ; j<l ; j++){
-			a=dockSet[j];
-			if(!j){
-				side=a.side;
-				isVertical=(side=='W')||(side=='E')||(side=='M');
-				amount=0;
-				maxThick=0;
-			}
-			if(isVertical){
-				if (a.width>maxThick) maxThick=a.width;
-				amount+=a.height;
-			} else {
-				if (a.height>maxThick) maxThick=a.height;
-				amount+=a.width;
-			}
-		}
-		// window size
-		ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
-		jsa.console.info('ws for '+a.viewModel.html+" is ");
-		jsa.console.info(ws,boundary);
-		mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
-		stackPos=(isVertical)?boundary.vy1:boundary.vx1;
-		for (j=0 ; j<l ; j++){
-			a=dockSet[j];
-			isLast=(j==(l-1));
-			needSplitter=(!isLast) && (spOn);
-			if((a.isVisible=(ws>0))) {
-				if (isVertical){
-					a.h=(isLast)?ws:Math.floor(a.height / mul);
-					if(a.h<a.minHeight) {
-						a.h=a.minHeight;
-					}
-					a.w=maxThick;
-					a.y=stackPos;
-					stackPos+=a.h+ss;
-					ws-=a.h+ss;
-				}else{
-					a.x=stackPos;
-					a.w=(isLast)?ws:Math.floor(a.width / mul);
-					if (a.w<a.minWidth) {
-						a.w=a.minWidth;
-					}
-					a.h=maxThick;
-					stackPos+=a.w+ss;
-					ws-=a.w+ss;
-				}
-				switch(side) {
-					case 'N': // North - top
-						a.y=boundary.vy1;
-						break;
-					case 'S':
-						a.y=boundary.vy2-maxThick;
-						break;
-					case 'E': // East - right
-						a.x=boundary.vx2-maxThick;
-						break;
-					case 'M':
-						a.w=boundary.vx2-boundary.vx1; // NO BREAK!
-					case 'W':
-						a.x=boundary.vx1;
-				}
-				if(needSplitter) {
-					if(isVertical) {
-						tx=a.x; ty=a.y+a.h; tw=a.w; th=ss; tv=1;
-					} else {
-						tx=a.x+a.w; ty=a.y; tw=ss; th=a.h; tv=0;
-					}
-				}
-			} else {
-				needSplitter=0;
-				jsa.console.info('not isVisible '+a.viewModel.html+" w="+a.w+' h='+a.h);
-
-
-			}
-
-			a.arrangeKids();
-			a.setPosSizeVisible();
-			if(needSplitter){
-				if (!a.scaleSplitter){
-					a.scaleSplitter={
-						using:1,
-						control:a,
-						htmlElement : doc.createElement('div')
-					};
-					justadded=1;
-				} else justadded=0;
-				sp=a.scaleSplitter.htmlElement;
-				sp.style.position='absolute';
-				sp.style.backgroundColor='red';
-				sp.style.left=tx+'px';
-				sp.style.top=ty+'px';
-				sp.style.width=tw+'px';
-				sp.style.height=th+'px';
-				sp.style.cursor=tv?"row-resize":"col-resize";
-				//jsa.on('mousedown',);
-				if(justadded) {
-					me.element.appendChild(sp);
-				}
-			}
-
-		}
-		if (a.isVisible) switch(side) {
-			case 'N':
-				boundary.vy1+=maxThick+ss;
-				break;
-			case 'E':
-				boundary.vx2-=maxThick+ss;
-				break;
-			case 'W':
-				boundary.vx1+=maxThick+ss;
-				break;
-			case 'S':
-				boundary.vy2-=maxThick+ss;
-		}// M should be only last! Works like 'W'
-	},
-
-	arrangeKids:function(){
-		var me=this,i,dockSet,c,tmp, sp,
-				boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
-		if(!!me.stretchSplitters){
-			for (i in me.stretchSplitters) {
-				me.stretchSplitters[i].using=0;
-			}
-		}else{
-			me.stretchSplitters=[];
-		}
-
-		for(i in this.kids){
-			c=this.kids[i];
-			if(c.side!='A'){ // Attached
-				this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
-				dockSet=[c];
-			}else{
-				dockSet.push(c);
-			}
-		}
-		this._arrangeSet(dockSet,boundary,1,5);
-
-		if (!!me.stretchSplitters){
-			for (i=me.stretchSplitters.length-1;i>=0;i--) {
-				sp=me.stretchSplitters[i];
-				if (!sp.using){
-					sp.htmlElement.parentNode.removeChild(sp.htmlElement);
-					delete sp.htmlElement;
-					if ((!!sp.control)&&(sp.control.stretchSplitter)) delete sp.control.stretchSplitters;
-					delete me.stretchSplitters[i];
-				}
-			}
-		}
-	},
-
-	anchor:function(id){
-		return "[["+id+"_"+jsa.getUID()+"]]";
-	}
+            }
+            es.width= (this.w-offset)+'px';
+            es.height=(this.h-offset)+'px';
+            es.display='block';
+        }
+    }
 };
+/**
+ * @param {type} dockSet array of docking controls
+ * @param {type} boundary view limits
+ * @param {type} spOn allow add splitters
+ * @param {type} ss splitter size in pixels
+ * @returns {unresolved}
+ */
+jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
+    var me=this,doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
+            amount,maxThick,tx,ty,tw,th,tv,sp;
+    if (!ss)ss=5;
+    if(!dockSet) {
+        return;
+    }
+
+    l=dockSet.length;
+    if (l>1) {
+        //debugger;
+    }
+    for (j=0 ; j<l ; j++){
+        a=dockSet[j];
+        if(!j){
+            side=a.side;
+            isVertical=(side=='W')||(side=='E')||(side=='M');
+            amount=0;
+            maxThick=0;
+        }
+        if(isVertical){
+            if (a.width>maxThick) maxThick=a.width;
+            amount+=a.height;
+        } else {
+            if (a.height>maxThick) maxThick=a.height;
+            amount+=a.width;
+        }
+    }
+    // window size
+    ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
+    jsa.console.info('ws for '+a.viewModel.html+" is ");
+    jsa.console.info(ws,boundary);
+    mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
+    stackPos=(isVertical)?boundary.vy1:boundary.vx1;
+    for (j=0 ; j<l ; j++){
+        a=dockSet[j];
+        isLast=(j==(l-1));
+        needSplitter=(!isLast) && (spOn);
+        if((a.isVisible=(ws>0))) {
+            if (isVertical){
+                a.h=(isLast)?ws:Math.floor(a.height / mul);
+                if(a.h<a.minHeight) {
+                    a.h=a.minHeight;
+                }
+                a.w=maxThick;
+                a.y=stackPos;
+                stackPos+=a.h+ss;
+                ws-=a.h+ss;
+            }else{
+                a.x=stackPos;
+                a.w=(isLast)?ws:Math.floor(a.width / mul);
+                if (a.w<a.minWidth) {
+                    a.w=a.minWidth;
+                }
+                a.h=maxThick;
+                stackPos+=a.w+ss;
+                ws-=a.w+ss;
+            }
+            switch(side) {
+                case 'N': // North - top
+                    a.y=boundary.vy1;
+                    break;
+                case 'S':
+                    a.y=boundary.vy2-maxThick;
+                    break;
+                case 'E': // East - right
+                    a.x=boundary.vx2-maxThick;
+                    break;
+                case 'M':
+                    a.w=boundary.vx2-boundary.vx1; // NO BREAK!
+                case 'W':
+                    a.x=boundary.vx1;
+            }
+            if(needSplitter) {
+                if(isVertical) {
+                    tx=a.x; ty=a.y+a.h; tw=a.w; th=ss; tv=1;
+                } else {
+                    tx=a.x+a.w; ty=a.y; tw=ss; th=a.h; tv=0;
+                }
+            }
+        } else {
+            needSplitter=0;
+            jsa.console.info('not isVisible '+a.viewModel.html+" w="+a.w+' h='+a.h);
+
+
+        }
+
+        a.arrangeKids();
+        a.setPosSizeVisible();
+        if(needSplitter){
+            if (!a.scaleSplitter){
+                a.scaleSplitter={
+                    using:1,
+                    control:a,
+                    htmlElement : doc.createElement('div')
+                };
+                justadded=1;
+            } else justadded=0;
+            sp=a.scaleSplitter.htmlElement;
+            sp.style.position='absolute';
+            sp.style.backgroundColor='red';
+            sp.style.left=tx+'px';
+            sp.style.top=ty+'px';
+            sp.style.width=tw+'px';
+            sp.style.height=th+'px';
+            sp.style.cursor=tv?"row-resize":"col-resize";
+            //jsa.on('mousedown',);
+            if(justadded) {
+                me.element.appendChild(sp);
+            }
+        }
+
+    }
+    if (a.isVisible) switch(side) {
+        case 'N':
+            boundary.vy1+=maxThick+ss;
+            break;
+        case 'E':
+            boundary.vx2-=maxThick+ss;
+            break;
+        case 'W':
+            boundary.vx1+=maxThick+ss;
+            break;
+        case 'S':
+            boundary.vy2-=maxThick+ss;
+    }// M should be only last! Works like 'W'
+};
+
+jsa.DockPanel.prototype.arrangeKids=function(){
+    var me=this,i,dockSet,c,tmp, sp,
+            boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
+    if(!!me.stretchSplitters){
+        for (i in me.stretchSplitters) {
+            me.stretchSplitters[i].using=0;
+        }
+    }else{
+        me.stretchSplitters=[];
+    }
+
+    for(i in this.kids){
+        c=this.kids[i];
+        if(c.side!='A'){ // Attached
+            this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
+            dockSet=[c];
+        }else{
+            dockSet.push(c);
+        }
+    }
+    this._arrangeSet(dockSet,boundary,1,5);
+
+    if (!!me.stretchSplitters){
+        for (i=me.stretchSplitters.length-1;i>=0;i--) {
+            sp=me.stretchSplitters[i];
+            if (!sp.using){
+                sp.htmlElement.parentNode.removeChild(sp.htmlElement);
+                delete sp.htmlElement;
+                if ((!!sp.control)&&(sp.control.stretchSplitter)) delete sp.control.stretchSplitters;
+                delete me.stretchSplitters[i];
+            }
+        }
+    }
+};
+
+jsa.DockPanel.prototype.anchor=function(id){
+    return "[["+id+"_"+jsa.getUID()+"]]";
+};
+
 
