@@ -14,7 +14,16 @@
 
 <body style="margin:0; padding:0;">
 Try one!
+<script>
+window.onerror = function(message, source, lineno) {
+  var d=window.top.document;
+  var e=d.createElement('div');
+  e.innerText="InframeError: "+message +" " + " in " + source + " at:" + lineno;
+  d.getElementById('toplog').appendChild(e);
+  
+};
 
+</script>
 <div id='topmenu' class='topmenu'><a href='javascript:;' onclick='showSettings()'>Настройки</a> &nbsp;
 <a href='javascript:;' onclick='FX.loadAllFolders()'>(1) Прочитать списки файлов</a>
 </div>
@@ -91,8 +100,8 @@ init:function(){
 
 	var splitter1=new jsa.Splitter();
 	//var splitter2=new jsa.Splitter({owner:inframe1});
-	debugger;
-	splitter1.put({owner:inframe1,minValue:1,maxValue:200});
+	//debugger;
+	//splitter1.put({jsf:jsf, owner:inframe1, minValue:1, maxValue:200});
 	FX.dataProvider1=new jsa.GridDataProvider();
 	FX.dataProvider1.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
