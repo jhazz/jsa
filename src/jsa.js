@@ -836,18 +836,19 @@ jsa.put=function(a) {
 				jsa.console.warn("Created "+(typeof this)+" without reference to owner. It means memory leaks");
 			}
 		}
-		console.log('.Control.put called')
+		jsa.console.log('.Control.put called')
 	}
 };
 
 (jsa.Splitter=function(){}).prototype = new jsa.Control();
-jsa.Splitter.prototype.super=jsa.Control.prototype;
+jsa.Splitter.prototype.superClass=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
-	console.log('.Splitter.put called')
-	this.super.put.call(this,a)
+	jsa.console.log('.Splitter.put called')
+	this.superClass.put.call(this,a)
 };
 
 (jsa.DockPanel=function(){}).prototype = new jsa.Control();
+jsa.DockPanel.prototype.superClass=jsa.Control.prototype;
 
 jsa.DockPanel.prototype.put=function(a) {
     // viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
@@ -855,7 +856,7 @@ jsa.DockPanel.prototype.put=function(a) {
         dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
         htmlTag=viewModel.tag||'div',s,i,j,doc,element;
         
-    this.super.put.call(this,a)
+    this.superClass.put.call(this,a);
     doc=a.jsf.doc;
     element=((!htmlContainer) ? doc : htmlContainer.ownerDocument).createElement(htmlTag);
     me.minWidth=50;
@@ -1075,8 +1076,6 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
         } else {
             needSplitter=0;
             jsa.console.info('not isVisible '+a.viewModel.html+" w="+a.w+' h='+a.h);
-
-
         }
 
         a.arrangeKids();
