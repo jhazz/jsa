@@ -1,8 +1,17 @@
 /**
- * NEWEST
  * @fileoverview The main module file
  * Loads in the topmost window and carry all libraries using by the child frames
  * @author Vlad Zbitnev
+ *
+ *
+ *
+ * TODO NEXT
+ * 1. Сделать проверку того, что после ресайза все сплиттеры не пересоздаются, а просто меняют размер и позицию
+ * 2. Добавить подписку на удаление панели (destroy) к сплитерам, чтобы чувствовали удаление
+ * 3. Добавить сплитер к обычной, не 'A'-панели, То есть до docSet'a
+ * 4. Сделать аналогичное для набора панелей (A-docSet'a)
+ * 5. jsa.on() неудобные аргументы, посмотреть другие фреймверки
+ * 
  */
 
 /*jslint eqeqeq:false, indent: 4, maxerr: 230, white: true, browser: true, evil: true, nomen: true, plusplus: true, sloppy: true */
@@ -25,11 +34,16 @@ var CREATE_CONSOLE = true;
  */
 var DEBUG=1;
 
-var ACTION_JSA_CONSOLE_REGENERATE = 1;
-var ACTION_JSA_CONSOLE_REARRANGE = 2;
-var ACTION_JSA_PUT=3;
+
+/** @type {Object} */
 var jsf;
 var jsa={
+	c:{
+		ACTION_JSA_CONSOLE_REGENERATE:1,
+		ACTION_JSA_CONSOLE_REARRANGE:2,
+		ACTION_JSA_PUT:3
+	},
+
 	/** @type {Object} */
 	modules : {},
 	/** @type {Object}*/
@@ -79,6 +93,7 @@ var jsa={
 
 	name:'jsa',
 
+	
 	subscribers:{},
 	/**
 	* Executes on class ready after load or inline
@@ -294,7 +309,6 @@ var jsa={
 					n--;
 				}
 			}
-
 			for (i in stage.timelineAfter) {
 				act = stage.timelineAfter[i];
 				n++;
@@ -313,7 +327,6 @@ var jsa={
 				}
 			}
 		}
-
 		if (!n) {
 			jsa.win.clearInterval(stage.hTimer);
 			stage.hTimer = 0;
@@ -420,7 +433,7 @@ var jsa={
 	* @returns undefined
 	*/
 	createDiv : function (id, attrs, into, tpl, scopeObject) {
-		var s,i,j,	c = ((!!into) ? into.ownerDocument : jsa.doc).createElement('div');
+		var s,i,j,  c = ((!!into) ? into.ownerDocument : jsa.doc).createElement('div');
 		c.setAttribute('id', id);
 		if (attrs) {
 			for (i in attrs) {
@@ -458,21 +471,21 @@ var jsa={
 	*/
 	sub: function (pubObj,eventName,subObj,subMethod) {
 		var v,evs,subs;
-		if(!pubObj.name){
-			jsa.console.error('sub: pubObj has no name');
+		if(!pubObj.id){
+			jsa.console.error('sub: pubObj has no id');
 			return false;
 		}
-		if(!subObj.name){
-			jsa.console.error('sub: subObj has no name');
+		if(!subObj.id){
+			jsa.console.error('sub: subObj has no id');
 			return false;
 		}
-		subs=jsa.subscribers[pubObj.name];
+		subs=jsa.subscribers[pubObj.id];
 		if(!subs){
-			subs=jsa.subscribers[pubObj.name]={};
+			subs=jsa.subscribers[pubObj.id]={};
 		}
-		evs=subs[subObj.name];
+		evs=subs[subObj.id];
 		if(!evs){
-			evs=subs[subObj.name]={};
+			evs=subs[subObj.id]={};
 		}
 		v=evs[eventName];
 		if(!v){
@@ -481,8 +494,8 @@ var jsa={
 		return true;
 	},
 
-	pub:function(pubObj,eventName,eargs) {
-		var sObjName,evs,subs=jsa.subscribers[pubObj.name],v;
+	pub:function(pubObjId,eventName,eargs) {
+		var sObjName,evs,subs=jsa.subscribers[pubObjId],v;
 		if(subs) {
 			for(sObjName in subs) {
 				evs=subs[sObjName];
@@ -519,7 +532,7 @@ jsa.GridDataProvider.prototype={
 			}
 			dr++;
 		}
-		jsa.pub(this,'afterChange',{range:destRange});
+		jsa.pub(this.id,'afterChange',{range:destRange});
 	}
 };
 
@@ -537,6 +550,14 @@ jsa.Frame=jsa.define({
 		_.doc=window.document;
 		_.jsa.frames[name]=_;
 		_.ownedObjects={};
+		jsa.on('mouseDown', function(e){
+			var srcId=e.srcElement.getAttribute('id');
+			if(!!srcId) {
+				jsa.console.log('Pub event mouseDown from '+srcId);
+				jsa.pub(srcId,'mouseDown',e);
+			}
+		}, _.doc);
+		
 	},
 	methods:{
 		/*
@@ -606,8 +627,8 @@ if(CREATE_CONSOLE) {
 			};
 			_.consoleWatch = jsa.createDiv('consoleWatch', tmpl, _.consoleMonitor, 'Console watch');
 			_.consoleLog = jsa.createDiv('consoleLog', tmpl, _.consoleMonitor, 'Console log');
-			jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});},_.win);
-			jsa.run({_:_,f:_.rearrange,aid:ACTION_JSA_CONSOLE_REARRANGE});
+			jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:jsa.c.ACTION_JSA_CONSOLE_REARRANGE});},_.win);
+			jsa.run({_:_,f:_.rearrange,aid:jsa.c.ACTION_JSA_CONSOLE_REARRANGE});
 		},
 		group: function (groupName){
 			this.addLog(arguments,5); // 5-group opened
@@ -675,7 +696,7 @@ if(CREATE_CONSOLE) {
 			logEntry=[v, mode, _.curGroupEntry, _.curGroupIndent];
 			if(mode==5){_.curGroupEntry=_.logData.length;_.curGroupIndent++;}
 			_.logData.push(logEntry);
-			jsa.run({f : _.regenerate,_:_, aidAfter:ACTION_JSA_CONSOLE_REGENERATE});
+			jsa.run({f : _.regenerate,_:_, aidAfter:jsa.c.ACTION_JSA_CONSOLE_REGENERATE});
 		},
 
 		regenerate:function(act) {
@@ -773,11 +794,11 @@ if(CREATE_CONSOLE) {
 jsa.on('load',function(){
 	/** @this window */
 	jsf=jsa.registerFrame(window,"AppTopWindow");
-	if (CREATE_CONSOLE)	{
+	if (CREATE_CONSOLE) {
 		jsa.console.labIFrame=jsf.find("labiframe1");
 		jsa.console.init(window);
-		jsa.actionByCode[ACTION_JSA_CONSOLE_REGENERATE] = jsa.actionByName['.console.regenerate'] = jsa.console.regenerate;
-		jsa.actionByCode[ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['.console.rearrange'] = jsa.console.rearrange;
+		jsa.actionByCode[jsa.c.ACTION_JSA_CONSOLE_REGENERATE] = jsa.actionByName['.console.regenerate'] = jsa.console.regenerate;
+		jsa.actionByCode[jsa.c.ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['.console.rearrange'] = jsa.console.rearrange;
 		jsa.console.log('Console module starts');
 	}
 },window);
@@ -788,7 +809,7 @@ if (!COMPILED) {
 }
 
 
-jsa.actionByCode[ACTION_JSA_PUT] =
+jsa.actionByCode[jsa.c.ACTION_JSA_PUT] =
 jsa.actionByName['.put']=
 jsa.put=function(a) {
 	var ctrl,vm,cls='',classDef,nothing=false;
@@ -824,6 +845,7 @@ jsa.put=function(a) {
 
 
 (jsa.Control=function(){}).prototype={
+	clsName:'jsa.Control',
 	destroy:function(){
 		var i,c;
 		for(i in this.ownedObjects){
@@ -831,9 +853,9 @@ jsa.put=function(a) {
 			c.destroy();
 			delete this.ownedObjects[i];
 		}
-        if (c.element){
-            
-        }
+		if (c.element){
+			
+		}
 	},
 	
 	setPosSizeVisible:function(){
@@ -859,11 +881,11 @@ jsa.put=function(a) {
 	 * Factory method for all Controls
 	 * @param {object}      a arguments
 	 * @param {Object}      a.target target control to put the newest control inside
-	 * @param {Number}		a.x x coordinate
-	 * @param {Number}		a.y y coordinate
-	 * @param {object}		a.owner owner the jsf container that has ownedObjects{}
-	 * @param {jsa.Frame}	a.jsf environment
-	 * @param {HTMLElement}	a.he htmlElement that will containing created control
+	 * @param {Number}      a.x x coordinate
+	 * @param {Number}      a.y y coordinate
+	 * @param {object}      a.owner owner the jsf container that has ownedObjects{}
+	 * @param {jsa.Frame}   a.jsf environment
+	 * @param {HTMLElement} a.he htmlElement that will containing created control
 	 **/
 	put:function(a) {
 		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a.target, s, j;
@@ -877,12 +899,13 @@ jsa.put=function(a) {
 		me.x=a.x||0;
 		me.y=a.y||0;
 		me.isVisible=a.isVisible||true;
-		me.id=jsa.getUID(typeof this);
+		me.id=jsa.getUID(this.clsName);
+		me.element.setAttribute('id',me.id);
 		if(!!a.owner) {
 			a.owner.ownedObjects[me.id]=me;
 		}else{
 			if(DEBUG){
-				jsa.console.warn("Created "+(typeof me)+" without reference to owner. It means memory leaks");
+				jsa.console.warn("Created "+(me.clsName)+" without reference to owner. It means memory leaks");
 			}
 		}
 		me.viewModel=viewModel;
@@ -921,11 +944,23 @@ jsa.put=function(a) {
 };
 
 (jsa.Splitter=function(){}).prototype = new jsa.Control();
+jsa.Splitter.prototype.clsName='jsa.Splitter';
 jsa.Splitter.prototype.superClass=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
 	jsa.console.log('.Splitter.put called',a);
 	this.superClass.put.call(this,a);
-    this.parentCtrl.element.appendChild(this.element);
+	this.mode=a.mode;
+	this.stretchControl1=a.stretchControl1;
+	this.stretchControl2=a.stretchControl2;
+	// TODO add destroy publisher
+//    jsa.sub(this.stretchControl1,'destroy',this,function(){
+//      jsa.console.log('Control destroyed. So splitter should destroyed too');
+//        })
+	jsa.sub(this,'mouseDown',this,'mouseDown');
+	this.parentCtrl.element.appendChild(this.element);
+};
+jsa.Splitter.prototype.mouseDown=function(){
+	jsa.console.log('Splitter mouse down');
 };
 jsa.Splitter.prototype.size=function(){
 	var w=this.width, h=this.height;
@@ -935,6 +970,9 @@ jsa.Splitter.prototype.size=function(){
 		this.h=h;
 	}
 };
+jsa.c.SPLITTER_MODE_STRETCH=1;
+jsa.c.SPLITTER_MODE_RESIZE_DOCK=2;
+//jsa.c.SPLITTER_MODE_RESIZE_CONTROL=3;
 
 (jsa.DockPanel=function(){}).prototype = new jsa.Control();
 jsa.DockPanel.prototype.superClass=jsa.Control.prototype;
@@ -945,7 +983,7 @@ jsa.DockPanel.prototype.put=function(a) {
 		dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.target,kc,
 		s,i,j,doc=a.jsf.doc,element;
 	
-    me.side=viewModel.side;		
+	me.side=viewModel.side;     
 	this.superClass.put.call(this,a);
 	element=me.element;
 	me.size();
@@ -1024,32 +1062,12 @@ jsa.DockPanel.prototype.size=function() {
 	this.sizeChanged=((w!=this.w)||(h!=this.h));
 };
 
-/*
-jsa.DockPanel.prototype.setPosSizeVisible=function(){
-	var e=this.element,es,offset=(this.borderSize+this.padding)*2;
-	if(e) {
-		es=e.style;
-		if((this.w<0)||(this.h<0)) this.isVisible=0;
-		if(!this.isVisible){
-			es.display='none';
-		}else{
-			es.position='absolute';
-			es.left=this.x+'px';
-			es.top=this.y+'px';
-
-			es.width= (this.w-offset)+'px';
-			es.height=(this.h-offset)+'px';
-			es.display='block';
-		}
-	}
-};
-*/
 /**
  *
- * @param {type} dockSet array of docking controls
- * @param {type} boundary view limits
- * @param {type} spOn allow add splitters
- * @param {type} ss splitter size in pixels
+ * @param {Array} dockSet array of docking controls
+ * @param {Object} boundary view limits
+ * @param {Number} spOn allow add splitters
+ * @param {Number} ss splitter size in pixels
  */
 jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 	var me=this, doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
@@ -1059,7 +1077,6 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 		return;
 	}
 	
-    
 	l=dockSet.length;
 	if (l>1) {
 		//debugger;
@@ -1082,7 +1099,7 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 	}
 	// window size
 	ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
-	mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
+	mul=(ws<1)? 1 : amount/(ws-(l-1)*ss);
 	stackPos=(isVertical)?boundary.vy1:boundary.vx1;
 	for (j=0 ; j<l ; j++){
 		a=dockSet[j];
@@ -1138,23 +1155,28 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 		a.arrangeKids();
 		a.setPosSizeVisible();
 		if(needSplitter){
-			jsa.console.info("prepare put splitter");
-			sp=jsa.put({
-				target: me,
-				jsf:me.jsf,
-				using:1,
-				x:tx,
-				y:ty,
-				vm:{
-					ctrl: 'Splitter',
-					width:tw,
-					height:th,
-					s:{
-						backgroundColor:'red',
-						cursor:tv?"row-resize":"col-resize"
+			if(!(sp=a.stretchSplitter)) {
+				jsa.console.info("prepare put splitter");
+				a.stretchSplitter=sp=jsa.put({
+					target: me,
+					jsf: me.jsf,
+					using: 1,
+					x: tx,
+					y: ty,
+					mode: jsa.c.SPLITTER_MODE_STRETCH,
+					stretchControl1: a,
+					stretchControl2: dockSet[j+1],
+					vm:{
+						ctrl: 'Splitter',
+						width:tw,
+						height:th,
+						s:{
+							backgroundColor:'red',
+							cursor:tv ? 'row-resize' : 'col-resize'
+						}
 					}
-				}
-			});
+				});
+			}
 			sp.size();
 			sp.setPosSizeVisible();
 		}
@@ -1176,7 +1198,7 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 
 jsa.DockPanel.prototype.arrangeKids=function(){
 	var me=this,i,dockSet,c,tmp, sp,
-			boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
+		boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
 	if(!!me.stretchSplitters){
 		for (i in me.stretchSplitters) {
 			me.stretchSplitters[i].using=0;
@@ -1187,14 +1209,14 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 
 	for(i in this.kids){
 		c=this.kids[i];
-        if(c.side!==undefined){
-            if(c.side!='A'){ // Attached
-                this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
-                dockSet=[c];
-            }else{
-                dockSet.push(c);
-            }
-        }
+		if(c.side!==undefined){
+			if(c.side!='A'){ // Attached
+				this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
+				dockSet=[c];
+			}else{
+				dockSet.push(c);
+			}
+		}
 	}
 	this._arrangeSet(dockSet,boundary,1,5);
 
@@ -1202,10 +1224,14 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 		for (i=me.stretchSplitters.length-1;i>=0;i--) {
 			sp=me.stretchSplitters[i];
 			if (!sp.using){
+				debugger;
+				sp.destroy();
+				/*
 				sp.htmlElement.parentNode.removeChild(sp.htmlElement);
 				delete sp.htmlElement;
 				if ((!!sp.control)&&(sp.control.stretchSplitter)) delete sp.control.stretchSplitters;
 				delete me.stretchSplitters[i];
+				*/
 			}
 		}
 	}
