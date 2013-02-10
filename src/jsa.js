@@ -831,6 +831,9 @@ jsa.put=function(a) {
 			c.destroy();
 			delete this.ownedObjects[i];
 		}
+        if (c.element){
+            
+        }
 	},
 	
 	setPosSizeVisible:function(){
@@ -853,15 +856,17 @@ jsa.put=function(a) {
 
 
 	/**
-	 *
+	 * Factory method for all Controls
+	 * @param {object}      a arguments
+	 * @param {Object}      a.target target control to put the newest control inside
+	 * @param {Number}		a.x x coordinate
+	 * @param {Number}		a.y y coordinate
 	 * @param {object}		a.owner owner the jsf container that has ownedObjects{}
-	 * @param {object}		a. x coordinate
 	 * @param {jsa.Frame}	a.jsf environment
 	 * @param {HTMLElement}	a.he htmlElement that will containing created control
-	 * @param {jsa.Control}	a._ target control to put the newest control in
 	 **/
 	put:function(a) {
-		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a._, s, j;
+		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a.target, s, j;
 		if(!a.jsf){
 			jsa.console.info('jsa.Control({}) without jsf');
 		}
@@ -885,7 +890,6 @@ jsa.put=function(a) {
 		me.dataProvider=a.dataProvider;
 		me.minWidth=viewModel.minWidth||50;
 		me.minHeight=viewModel.minHeight||40;
-		
 		me.borderSize=viewModel.borderSize||0;
 		me.padding=viewModel.padding||0;
 		me.width=viewModel.width||200;
@@ -902,8 +906,6 @@ jsa.put=function(a) {
 				element.setAttribute(j, s[j]);
 			}
 		}
-		me.side=viewModel.side;
-	
 		if (!!(s=viewModel.s)){
 			for (j in s) {
 				element.style[j]=s[j];
@@ -922,14 +924,10 @@ jsa.put=function(a) {
 jsa.Splitter.prototype.superClass=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
 	jsa.console.log('.Splitter.put called',a);
-	
 	this.superClass.put.call(this,a);
-	debugger;
-	this.width=a.width;
-	this.height=a.height;
+    this.parentCtrl.element.appendChild(this.element);
 };
 jsa.Splitter.prototype.size=function(){
-debugger;
 	var w=this.width, h=this.height;
 	this.sizeChanged=((w!=this.w)||(h!=this.h));
 	if (this.sizeChanged){
@@ -944,18 +942,19 @@ jsa.DockPanel.prototype.superClass=jsa.Control.prototype;
 jsa.DockPanel.prototype.put=function(a) {
 	// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
 	var me=this,viewModel=a.vm,
-		dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a._,kc,
+		dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.target,kc,
 		s,i,j,doc=a.jsf.doc,element;
-		
+	
+    me.side=viewModel.side;		
 	this.superClass.put.call(this,a);
 	element=me.element;
 	me.size();
 	if(!!(s=viewModel._)){
 		for (j in s){ // array of child elements
 			kc=s[j];
-			// TODO не хочу использовать Path и его выстраивание контролами.
+			// TODO: не хочу использовать Path и его выстраивание контролами.
 			// Хочется позвать dataProvider и сообщить, что я вхожу в дочерние узлы, чтобы он сам расставил бинды
-			jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, _:me});
+			jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, target:me});
 			}
 		}
 	if (!!parentCtrl){
@@ -976,7 +975,11 @@ jsa.DockPanel.prototype.put=function(a) {
 };
 
 
-
+/**
+ * updates (this.w, this.h) <= (this.width, this.height) that described in percents
+ * If any dimension had changed set this.sizeChanged to true
+ * Note: this.viewModel contains initial size
+ **/
 jsa.DockPanel.prototype.size=function() {
 	var w=this.w,h=this.h,l,htmlContainer=this.htmlContainer,s,parentWidth,
 	parentHeight,parentCtrl=this.parentCtrl;
@@ -1042,20 +1045,21 @@ jsa.DockPanel.prototype.setPosSizeVisible=function(){
 };
 */
 /**
+ *
  * @param {type} dockSet array of docking controls
  * @param {type} boundary view limits
  * @param {type} spOn allow add splitters
  * @param {type} ss splitter size in pixels
- * @returns {unresolved}
  */
 jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
-	var me=this,doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
+	var me=this, doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
 		amount,maxThick,tx,ty,tw,th,tv,sp;
 	if (!ss)ss=5;
 	if(!dockSet) {
 		return;
 	}
 	
+    
 	l=dockSet.length;
 	if (l>1) {
 		//debugger;
@@ -1136,17 +1140,16 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 		if(needSplitter){
 			jsa.console.info("prepare put splitter");
 			sp=jsa.put({
-				_: me,
+				target: me,
 				jsf:me.jsf,
 				using:1,
 				x:tx,
 				y:ty,
-				width:tw,
-				height:th,			
 				vm:{
 					ctrl: 'Splitter',
-
-					s: {
+					width:tw,
+					height:th,
+					s:{
 						backgroundColor:'red',
 						cursor:tv?"row-resize":"col-resize"
 					}
@@ -1184,12 +1187,14 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 
 	for(i in this.kids){
 		c=this.kids[i];
-		if(c.side!='A'){ // Attached
-			this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
-			dockSet=[c];
-		}else{
-			dockSet.push(c);
-		}
+        if(c.side!==undefined){
+            if(c.side!='A'){ // Attached
+                this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
+                dockSet=[c];
+            }else{
+                dockSet.push(c);
+            }
+        }
 	}
 	this._arrangeSet(dockSet,boundary,1,5);
 

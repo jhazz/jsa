@@ -18,7 +18,7 @@ Try one!
 window.onerror = function(message, source, lineno) {
   var d=window.top.document;
   var e=d.createElement('div');
-  e.innerText="InframeError: "+message +" " + " in " + source + " at:" + lineno;
+  e.innerText="<font colot='red'>InframeError: "+message +" " + " in " + source + " at:" + lineno+'</font>';
   d.getElementById('toplog').appendChild(e);
   
 };
