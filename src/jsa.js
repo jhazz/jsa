@@ -663,8 +663,11 @@ if(CREATE_CONSOLE) {
 			for(i=0;i<args.length;i++){
 				if(typeof args[i]=='object'){
 					v.push(this.dump(args[i]));
+				} else if (args[i]==undefined) {
+					debugger;
+					v.push('undefined');
 				} else {
-					v.push(args[i].toString());
+				v.push(args[i].toString());
 				}
 			}
 			logEntry=[v, mode, _.curGroupEntry, _.curGroupIndent];
@@ -704,7 +707,7 @@ if(CREATE_CONSOLE) {
 			return false;
 		},
 		rearrange:function (act) {
-							jsa.console.log("----------");
+			jsa.console.log("-----rearrange-----");
 
 			var _=act._, b=_.container, w=b.clientWidth, h=b.clientHeight, pw,ph, ls,
 				stMonitor=_.consoleMonitor.style, lab=_.labIFrame, stLab, stLog=_.consoleLog.style,
@@ -786,32 +789,34 @@ if (!COMPILED) {
 jsa.actionByCode[ACTION_JSA_PUT] =
 jsa.actionByName['.put']=
 jsa.put=function(a) {
-	var ctrl,vm,cls='',classDef;
+	var ctrl,vm,cls='',classDef,nothing=false;
 	vm=a.vm;
 	if(!a.owner) {
-		owner=a.jsf;
+		a.owner=a.jsf;
 	}
 	if(!vm){
 		if(DEBUG){
 			jsa.console.error('Put called without .vm parameter');
 		}
-		return;
+		return nothing;
 	}
 	cls=a.vm.ctrl;
 	if(!cls){
 		if (DEBUG){
 			jsa.console.error('Cannot put control without .ctrl field set in ViewModel');
 		}
-		return;
+		return nothing;
 	}
 	classDef=jsa[cls];
 	if(!!classDef){
 		ctrl=new (classDef)();
 		ctrl.put(a);
+		return ctrl;
 	} else {
 		if(DEBUG){
 			jsa.console.error('Undefined class jsa.'+cls);
 		}
+		return nothing;
 	}
 };
 
@@ -825,6 +830,26 @@ jsa.put=function(a) {
 			delete this.ownedObjects[i];
 		}
 	},
+	
+	setPosSizeVisible:function(){
+		var e=this.element,es,offset=(this.borderSize+this.padding)*2;
+		if(e) {
+			es=e.style;
+			if((this.w<0)||(this.h<0)) this.isVisible=0;
+			if(!this.isVisible){
+				es.display='none';
+			}else{
+				es.position='absolute';
+				es.left=this.x+'px';
+				es.top=this.y+'px';
+				es.width= (this.w-offset)+'px';
+				es.height=(this.h-offset)+'px';
+				es.display='block';
+			}
+		}
+	},
+
+
 	/**
 	 *
 	 * @param {object}		a.owner owner the jsf container that has ownedObjects{}
@@ -832,13 +857,11 @@ jsa.put=function(a) {
 	 * @param {jsa.Frame}	a.jsf environment
 	 * @param {HTMLElement}	a.he htmlElement that will containing created control
 	 * @param {jsa.Control}	a._ target control to put the newest control in
-	 * @returns {HTMLElement|false}
 	 **/
 	put:function(a) {
 		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a._, s, j;
 		if(!a.jsf){
 			jsa.console.info('jsa.Control({}) without jsf');
-			return false;
 		}
 		htmlTag=viewModel.tag||'div';
 		me.jsf=a.jsf;
@@ -846,6 +869,7 @@ jsa.put=function(a) {
 		me.element= element= ((!a.he) ? doc : a.he.ownerDocument).createElement(htmlTag);
 		me.x=a.x||0;
 		me.y=a.y||0;
+		me.isVisible=a.isVisible||true;
 		me.id=jsa.getUID(typeof this);
 		if(!!a.owner) {
 			a.owner.ownedObjects[me.id]=me;
@@ -859,7 +883,7 @@ jsa.put=function(a) {
 		me.dataProvider=a.dataProvider;
 		me.minWidth=viewModel.minWidth||50;
 		me.minHeight=viewModel.minHeight||40;
-		me.isVisible=a.isVisible||true;
+		
 		me.borderSize=viewModel.borderSize||0;
 		me.padding=viewModel.padding||0;
 		me.width=viewModel.width||200;
@@ -883,12 +907,11 @@ jsa.put=function(a) {
 				element.style[j]=s[j];
 			}
 		}
+
 		if((!parentCtrl)&&(!a.he)){
 			me.topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
 		}        
-		
 	jsa.console.log('.Control.put called')
-	return element;
 	}
 	
 };
@@ -896,8 +919,21 @@ jsa.put=function(a) {
 (jsa.Splitter=function(){}).prototype = new jsa.Control();
 jsa.Splitter.prototype.superClass=jsa.Control.prototype;
 jsa.Splitter.prototype.put=function(a){
-	jsa.console.log('.Splitter.put called')
-	this.superClass.put.call(this,a)
+	jsa.console.log('.Splitter.put called',a);
+	
+	this.superClass.put.call(this,a);
+	debugger;
+	this.width=a.width;
+	this.height=a.height;
+};
+jsa.Splitter.prototype.size=function(){
+debugger;
+	var w=this.width, h=this.height;
+	this.sizeChanged=((w!=this.w)||(h!=this.h));
+	if (this.sizeChanged){
+		this.w=w;
+		this.h=h;
+	}
 };
 
 (jsa.DockPanel=function(){}).prototype = new jsa.Control();
@@ -983,6 +1019,7 @@ jsa.DockPanel.prototype.size=function() {
 	this.sizeChanged=((w!=this.w)||(h!=this.h));
 };
 
+/*
 jsa.DockPanel.prototype.setPosSizeVisible=function(){
 	var e=this.element,es,offset=(this.borderSize+this.padding)*2;
 	if(e) {
@@ -994,15 +1031,14 @@ jsa.DockPanel.prototype.setPosSizeVisible=function(){
 			es.position='absolute';
 			es.left=this.x+'px';
 			es.top=this.y+'px';
-			if(!this.parentCtrl){
-//					debugger;
-			}
+
 			es.width= (this.w-offset)+'px';
 			es.height=(this.h-offset)+'px';
 			es.display='block';
 		}
 	}
 };
+*/
 /**
  * @param {type} dockSet array of docking controls
  * @param {type} boundary view limits
@@ -1040,8 +1076,6 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 	}
 	// window size
 	ws=(isVertical)? boundary.vy2-boundary.vy1 : boundary.vx2-boundary.vx1;
-	jsa.console.info('ws for '+a.viewModel.html+" is ");
-	jsa.console.info(ws,boundary);
 	mul=(ws<1)?	1 : amount/(ws-(l-1)*ss);
 	stackPos=(isVertical)?boundary.vy1:boundary.vx1;
 	for (j=0 ; j<l ; j++){
@@ -1098,22 +1132,26 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 		a.arrangeKids();
 		a.setPosSizeVisible();
 		if(needSplitter){
+			jsa.console.info("prepare put splitter");
 			sp=jsa.put({
-				cls: 'Splitter',
-				_: me.element,
+				_: me,
 				jsf:me.jsf,
 				using:1,
+				x:tx,
+				y:ty,
+				width:tw,
+				height:th,			
 				vm:{
-					x:tx,
-					y:ty,
-					width:tw,
-					height:th,
+					ctrl: 'Splitter',
+
 					s: {
 						backgroundColor:'red',
 						cursor:tv?"row-resize":"col-resize"
 					}
 				}
-			}); 
+			});
+			sp.size();
+			sp.setPosSizeVisible();
 		}
 	}
 	if (a.isVisible) switch(side) {
@@ -1169,4 +1207,3 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 jsa.DockPanel.prototype.anchor=function(id){
 	return "[["+id+"_"+jsa.getUID()+"]]";
 };
-
