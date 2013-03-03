@@ -154,11 +154,11 @@ var jsa={
 	},
 	/**
 	* Add event dispatcher to any DOM object
+	* @param {HTMLElement} target element listener assigns to
 	* @param {string} eventName name (i.e. 'load','click','mouseover')
 	* @param {function} callback recieves event
-	* @param {HTMLElement} target element listener assigns to
 	*/
-	on:function(eventName,callback,target){
+	on:function(target,eventName,callback){
 		eventName=eventName.toLowerCase();
 		if(!target) {
 			target=document;
@@ -550,13 +550,20 @@ jsa.Frame=jsa.define({
 		_.doc=window.document;
 		_.jsa.frames[name]=_;
 		_.ownedObjects={};
-		jsa.on('mouseDown', function(e){
+		
+		jsa.on(_.doc,'selectstart',function(e){
+			if((e.target||e.srcElement).getAttribute('selectable')==null){
+				e.cancelBubble=true;
+				return false;
+			}return true;
+		});
+		jsa.on(_.doc,'mouseDown', function(e){
 			var srcId=e.srcElement.getAttribute('id');
 			if(!!srcId) {
 				jsa.console.log('Pub event mouseDown from '+srcId);
 				jsa.pub(srcId,'mouseDown',e);
 			}
-		}, _.doc);
+		});
 		
 	},
 	methods:{
@@ -601,6 +608,7 @@ if(CREATE_CONSOLE) {
 			_.curGroupIndent=0;
 			_.consoleMonitor =
 				jsa.createDiv('consoleMonitor', {
+					
 					style : {
 						position : 'absolute',
 						left : '70%',
@@ -615,6 +623,7 @@ if(CREATE_CONSOLE) {
 
 
 			var tmpl = {
+				selectable:1,
 				style : {
 					position : 'absolute',
 					left : 0,
@@ -627,7 +636,7 @@ if(CREATE_CONSOLE) {
 			};
 			_.consoleWatch = jsa.createDiv('consoleWatch', tmpl, _.consoleMonitor, 'Console watch');
 			_.consoleLog = jsa.createDiv('consoleLog', tmpl, _.consoleMonitor, 'Console log');
-			jsa.on('resize',function(){jsa.run({_:_,f:_.rearrange,aid:jsa.c.ACTION_JSA_CONSOLE_REARRANGE});},_.win);
+			jsa.on(_.win,'resize',function(){jsa.run({_:_,f:_.rearrange,aid:jsa.c.ACTION_JSA_CONSOLE_REARRANGE});});
 			jsa.run({_:_,f:_.rearrange,aid:jsa.c.ACTION_JSA_CONSOLE_REARRANGE});
 		},
 		group: function (groupName){
@@ -791,7 +800,7 @@ if(CREATE_CONSOLE) {
 
 
 
-jsa.on('load',function(){
+jsa.on(window,'load',function(){
 	/** @this window */
 	jsf=jsa.registerFrame(window,"AppTopWindow");
 	if (CREATE_CONSOLE) {
@@ -801,7 +810,7 @@ jsa.on('load',function(){
 		jsa.actionByCode[jsa.c.ACTION_JSA_CONSOLE_REARRANGE] = jsa.actionByName['.console.rearrange'] = jsa.console.rearrange;
 		jsa.console.log('Console module starts');
 	}
-},window);
+});
 
 if (!COMPILED) {
 	// This block will be rejected by compiler
@@ -833,7 +842,7 @@ jsa.put=function(a) {
 	classDef=jsa[cls];
 	if(!!classDef){
 		ctrl=new (classDef)();
-		ctrl.put(a);
+		ctrl.put(a,1); // is first=1
 		return ctrl;
 	} else {
 		if(DEBUG){
@@ -886,8 +895,9 @@ jsa.put=function(a) {
 	 * @param {object}      a.owner owner the jsf container that has ownedObjects{}
 	 * @param {jsa.Frame}   a.jsf environment
 	 * @param {HTMLElement} a.he htmlElement that will containing created control
+	 * @param {Number}		isFirst means 1=first control that will call .arrangeKids
 	 **/
-	put:function(a) {
+	put:function(a,isFirst) {
 		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a.target, s, j;
 		if(!a.jsf){
 			jsa.console.info('jsa.Control({}) without jsf');
@@ -939,6 +949,7 @@ jsa.put=function(a) {
 			me.topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
 		}        
 	jsa.console.log('.Control.put called')
+	
 	}
 	
 };
@@ -959,7 +970,7 @@ jsa.Splitter.prototype.put=function(a){
 	jsa.sub(this,'mouseDown',this,'mouseDown');
 	this.parentCtrl.element.appendChild(this.element);
 };
-jsa.Splitter.prototype.mouseDown=function(){
+jsa.Splitter.prototype.mouseDown=function(e){
 	jsa.console.log('Splitter mouse down');
 };
 jsa.Splitter.prototype.size=function(){
@@ -977,14 +988,14 @@ jsa.c.SPLITTER_MODE_RESIZE_DOCK=2;
 (jsa.DockPanel=function(){}).prototype = new jsa.Control();
 jsa.DockPanel.prototype.superClass=jsa.Control.prototype;
 
-jsa.DockPanel.prototype.put=function(a) {
+jsa.DockPanel.prototype.put=function(a,isFirst) {
 	// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
 	var me=this,viewModel=a.vm,
 		dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.target,kc,
 		s,i,j,doc=a.jsf.doc,element;
 	
 	me.side=viewModel.side;     
-	this.superClass.put.call(this,a);
+	me.superClass.put.call(this,a);
 	element=me.element;
 	me.size();
 	if(!!(s=viewModel._)){
@@ -997,18 +1008,20 @@ jsa.DockPanel.prototype.put=function(a) {
 		}
 	if (!!parentCtrl){
 		parentCtrl.kids.push(me);
-		parentCtrl.arrangeKids();
+		if (isFirst) {
+			parentCtrl.arrangeKids();
+		}
 	}
 	if (!!htmlContainer) {
 		htmlContainer.appendChild(element);
 	}else{
 		doc.body.appendChild(element);
-		jsa.on('resize', function() {
+		jsa.on(a.jsf.win,'resize', function() {
 			me.size();
 			me.aid=this.uid+'_parentResized';
 			me.setPosSizeVisible();
 			me.arrangeKids();
-		}, a.jsf.win);
+		});
 	}
 };
 
@@ -1069,7 +1082,7 @@ jsa.DockPanel.prototype.size=function() {
  * @param {Number} spOn allow add splitters
  * @param {Number} ss splitter size in pixels
  */
-jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
+jsa.DockPanel.prototype._arrangeDockSet=function(dockSet,boundary,spOn,ss) {
 	var me=this, doc=me.element.ownerDocument, justadded,needSplitter,mul,ws,j,stackPos,a,l,isLast,side,isVertical,
 		amount,maxThick,tx,ty,tw,th,tv,sp;
 	if (!ss)ss=5;
@@ -1156,16 +1169,15 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 		a.setPosSizeVisible();
 		if(needSplitter){
 			if(!(sp=a.stretchSplitter)) {
-				jsa.console.info("prepare put splitter");
+				jsa.console.info("WARNING! prepare put splitter");
 				a.stretchSplitter=sp=jsa.put({
 					target: me,
 					jsf: me.jsf,
 					using: 1,
-					x: tx,
+					x: tx, // will be re-calculated during rearrange
 					y: ty,
 					mode: jsa.c.SPLITTER_MODE_STRETCH,
-					stretchControl1: a,
-					stretchControl2: dockSet[j+1],
+					dockSetPos: j,
 					vm:{
 						ctrl: 'Splitter',
 						width:tw,
@@ -1196,9 +1208,24 @@ jsa.DockPanel.prototype._arrangeSet=function(dockSet,boundary,spOn,ss) {
 	}// M should be only last! Works like 'W'
 };
 
+/**
+ * Clears all neighbour dockSets inside docked controls
+ **/
+jsa.DockPanel.prototype.flushArrangedDock=function(){
+    var me=this,i;
+	for(i in me.dockSets){
+		delete me.dockSets[i];
+	}
+}
+
+
 jsa.DockPanel.prototype.arrangeKids=function(){
-	var me=this,i,dockSet,c,tmp, sp,
+	var me=this,kidCount,i,dockSet,dockSetStarted=0,dockedControl,tmp, sp,
 		boundary={vx1:me.padding,vy1:me.padding,vx2:me.w-me.padding*2,vy2:me.h-me.padding*2};
+	
+//	if(!me.dockSets){
+		me.dockSets={};
+	//}
 	if(!!me.stretchSplitters){
 		for (i in me.stretchSplitters) {
 			me.stretchSplitters[i].using=0;
@@ -1207,24 +1234,37 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 		me.stretchSplitters=[];
 	}
 
-	for(i in this.kids){
-		c=this.kids[i];
-		if(c.side!==undefined){
-			if(c.side!='A'){ // Attached
-				this._arrangeSet(dockSet,boundary,1,5); // arrange previous set
-				dockSet=[c];
+	kidCount=me.kids.length;
+	for(i=0;i<kidCount;i++){
+		dockedControl=me.kids[i];
+		if(dockedControl.side!==undefined){
+			if(dockedControl.side!='A'){ // not Attached to previous docked panel
+				if (dockSetStarted) {
+					// arrange previous collected dockSet
+					me._arrangeDockSet(dockSet,boundary,1,5);
+				}
+					
+				// check this control inside previously generated dockSets[control.id]
+				if(!(dockSet=me.dockSets[dockedControl.id])){
+					dockSet=me.dockSets[dockedControl.id]=[dockedControl];
+					dockSetStarted=1;
+				}
 			}else{
-				dockSet.push(c);
+				dockSet.push(dockedControl);
+				me.dockSets[dockedControl.id]=dockSet;
 			}
 		}
 	}
-	this._arrangeSet(dockSet,boundary,1,5);
+	if (dockSetStarted) {
+		me._arrangeDockSet(dockSet,boundary,1,5);
+	}
 
 	if (!!me.stretchSplitters){
 		for (i=me.stretchSplitters.length-1;i>=0;i--) {
 			sp=me.stretchSplitters[i];
 			if (!sp.using){
-				debugger;
+				//debugger;
+				
 				sp.destroy();
 				/*
 				sp.htmlElement.parentNode.removeChild(sp.htmlElement);
