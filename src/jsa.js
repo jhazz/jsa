@@ -6,11 +6,11 @@
  *
  *
  * TODO NEXT
- * 1. Сделать проверку того, что после ресайза все сплиттеры не пересоздаются, а просто меняют размер и позицию
+ * 1. Публикация событий
  * 2. Добавить подписку на удаление панели (destroy) к сплитерам, чтобы чувствовали удаление
  * 3. Добавить сплитер к обычной, не 'A'-панели, То есть до docSet'a
  * 4. Сделать аналогичное для набора панелей (A-docSet'a)
- * 5. jsa.on() неудобные аргументы, посмотреть другие фреймверки
+ * 
  * 
  */
 
@@ -506,6 +506,16 @@ var jsa={
 				}
 			}
 		}
+	},
+	eventPublisher:function(e){
+		var t=e.type, el=srcel=(e.target||e.srcElement),id=el.getAttribute('jsa_id');
+		while ((id==null)&&(el.nodeName!='BODY')){
+			el=el.parentElement;
+			id=el.getAttribute('jsa_id');
+		}
+		if(id!=null){
+			jsa.pub(id,e.type,e);
+		}
 	}
 };
 
@@ -557,13 +567,18 @@ jsa.Frame=jsa.define({
 				return false;
 			}return true;
 		});
-		jsa.on(_.doc,'mouseDown', function(e){
+		jsa.on(_.doc,'mousedown', jsa.eventPublisher);
+		jsa.on(_.doc,'mouseup', jsa.eventPublisher);
+		jsa.on(_.doc,'mousemove', jsa.eventPublisher);
+		/*
+			   function(e){
 			var srcId=e.srcElement.getAttribute('id');
 			if(!!srcId) {
 				jsa.console.log('Pub event mouseDown from '+srcId);
 				jsa.pub(srcId,'mouseDown',e);
 			}
 		});
+		*/
 		
 	},
 	methods:{
@@ -911,6 +926,8 @@ jsa.put=function(a) {
 		me.isVisible=a.isVisible||true;
 		me.id=jsa.getUID(this.clsName);
 		me.element.setAttribute('id',me.id);
+		me.element.setAttribute('jsa_id',me.id);
+		
 		if(!!a.owner) {
 			a.owner.ownedObjects[me.id]=me;
 		}else{
@@ -967,11 +984,20 @@ jsa.Splitter.prototype.put=function(a){
 //    jsa.sub(this.stretchControl1,'destroy',this,function(){
 //      jsa.console.log('Control destroyed. So splitter should destroyed too');
 //        })
-	jsa.sub(this,'mouseDown',this,'mouseDown');
+	jsa.sub(this,'mousedown',this,'mousedown');
+	jsa.sub(this,'mouseup',this,'mouseup');
+	jsa.sub(this,'mousemove',this,'mousemove');
+	
 	this.parentCtrl.element.appendChild(this.element);
 };
-jsa.Splitter.prototype.mouseDown=function(e){
+jsa.Splitter.prototype.mousedown=function(e){
 	jsa.console.log('Splitter mouse down');
+};
+jsa.Splitter.prototype.mouseup=function(e){
+	jsa.console.log('Splitter mouse up');
+};
+jsa.Splitter.prototype.mouseout=function(e){
+	jsa.console.log('Splitter mouse out');
 };
 jsa.Splitter.prototype.size=function(){
 	var w=this.width, h=this.height;
