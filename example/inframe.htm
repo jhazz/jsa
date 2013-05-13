@@ -13,17 +13,6 @@
 </head>
 
 <body style="margin:0; padding:0;">
-Try one!
-<script>
-window.onerror = function(message, source, lineno) {
-  var d=window.top.document;
-  var e=d.createElement('div');
-  e.innerText="<font colot='red'>InframeError: "+message +" " + " in " + source + " at:" + lineno+'</font>';
-  d.getElementById('toplog').appendChild(e);
-  
-};
-
-</script>
 <div id='topmenu' class='topmenu'><a href='javascript:;' onclick='showSettings()'>Настройки</a> &nbsp;
 <a href='javascript:;' onclick='FX.loadAllFolders()'>(1) Прочитать списки файлов</a>
 </div>
@@ -31,55 +20,17 @@ window.onerror = function(message, source, lineno) {
 <div id='panelSettings' style='display:none; z-index:100;position:absolute; top:20px; left:20px;background-color:#f0f0f0'>
 <table cellpadding=5 >
 	<tr valign='top'>
-		<td>Флэш папка в которую копируются файлы с сервера (FlashInbox):
+		<td>Путь к флэшке (FlashInbox):
 		<br/><input type="text" size="40" id="pathFlashInbox" value="C:/etc/progs/hta/flash/inbox"/></td>
 		<td>&lt;&lt;</td>
-		<td>Серверная папка из которой копируются файлы (ServerOutbox):
-		<br/><input type="text" size="40" id="pathServerOutbox" value="C:/etc/progs/hta/server/outbox"/></td>
-	</tr>
-	<tr valign='top'>
-		<td>Флэш папка из которой получаем новые файлы(FlashOutbox):
-		<br/><input type="text" size="40" id="pathFlashOutbox" value="C:/etc/progs/hta/flash/outbox"/></td>
-		<td>&gt;&gt;</td>
-		<td>Серверная папка в которую передаем файлы с флэшки(ServerInbox):
-		<br/><input type="text" size="40" id="pathServerInbox" value="C:/etc/progs/hta/server/inbox"/></td>
+		<td>Путь к серверной папке (ServerInbox):
+		<br/><input type="text" size="40" id="pathServerInbox" value="C:/etc/progs/hta/server/outbox"/></td>
 	</tr>
 </table>
 </div>
 
-<!--
-<div id='folderFlashInbox' class='folderPanel' style='position:absolute;left:0; top:20px; width:400px; height: 200px;overflow:scroll'>
-	<div style='background-color:green; height:1000px; width:100%'></div>
-</div>
-
-<div id='folderFlashOutbox' class='folderPanel' style='position:absolute;left:0; top:220px; width:400px; height: 200px;overflow:scroll'>
-	<div style='background-color:blue; height:1000px; width:100%'></div>
-</div>
-
-<div id='folderServerOutbox' class='folderPanel' style='position:absolute;left:400; top:20px; width:400px; height: 200px;overflow:scroll'>
-	<div style='background-color:green; height:1000px; width:100%'></div>
-</div>
-
-<div id='folderServerInbox' class='folderPanel' style='position:absolute;left:400; top:220px; width:400px; height: 200px;overflow:scroll'>
-	<div style='background-color:blue; height:1000px; width:100%'></div>
-</div>
--->
-
-
 <script>
 /*global jsa, jsf */
-var logdemoTimer;
-
-function startLogDemo(){
-	logdemoTimer=window.setInterval(function(){
-		jsa.console.log('Log text');
-		jsa.console.error('Error text','some data',12345,{x:123});
-	},200);
-}
-function stopLogDemo(){
-	window.clearInterval(logdemoTimer);
-}
-
 
 function showSettings(){
 	var sp=document.getElementById('panelSettings');
@@ -89,12 +40,12 @@ function showSettings(){
 
 var FX={
 init:function(){
+    
 	// try
 	// FX.oFS=new ActiveXObject("Scripting.FileSystemObject");
+    
 //	FX.flashInbox=new jsa.Control({name:'Inbox папка на флэшке'});
-/*	FX.flashOutbox=new jsa.Control({name:'Outbox папка на флэшке'});
-	FX.serverInbox=new jsa.Control({name:'Inbox папка на сервере'});
-	FX.serverOutbox=new jsa.Control({name:'Outbox папка на сервере'});*/
+//	FX.serverInbox=new jsa.Control({name:'Inbox папка на сервере'});
 
 //	FX.flashInbox.div=jsa.createDiv('flashInbox',attrs,document.body,tplFolder,FX.flashInbox);
 
@@ -106,21 +57,20 @@ init:function(){
 	FX.dataProvider1.pasteData([2,3] /*"a1;c2*/,[[10,"first row",2012],[20,"second row",2013]]);
 
 	FX.vmodel1={
-		ctrl:'DockPanel',
-		borderSize:2,
-		padding:4,
+		clsName:'DockPanel',
+		padding:4, borderSize:2,
 		width:'100%',
 		height:'100%',
-		s:{padding:'4px',border:'2px groove',background:'#888070'},
-		html:'<b>theHtmlTextInside</b>',
+		s:{padding:'4px',border:'2px solid',background:'#888070'},
 		_:[{
-			ctrl:'DockPanel',
+			clsName:'DockPanel',
 			s:{border:'1px outset',background:'#f8f0e0',padding:'2px'},
-			borderSize:1, padding:2,
+			borderSize:1, padding:2,height:20,
+            id:'inframe1Menu',
 			html:'This is North',
 			side:'N'
 		},{
-			ctrl:'DockPanel',
+			clsName:'DockPanel',
 			s:{border:'1px outset',background:'#e4dad0',padding:'2px'},
 			borderSize:1, padding:2,
 			html:'This is East',
@@ -128,19 +78,19 @@ init:function(){
 			width:300,
 			side:'E',
 			_:[{
-				ctrl:'DockPanel',
+				clsName:'DockPanel',
 				s:{border:'1px outset',background:'#c8f0e0',padding:'2px'},
 				borderSize:1, padding:2,
 				html:'This is internal North',
 				side:'N'
 			},{
-				ctrl:'DockPanel',
+				clsName:'DockPanel',
 				s:{border:'1px outset',background:'#c8f0e0',padding:'2px'},
 				borderSize:1, padding:2,
 				width:60,
 				height:10,
-				html:'This is internal East1',
-				side:'E'
+				html:'This is internal Middle',
+				side:'M'
 			},{
 				ctrl:'DockPanel',
 				s:{border:'1px outset',background:'#caf2e0',padding:'2px'},
@@ -153,7 +103,7 @@ init:function(){
 				
 			]
 		},{
-			ctrl:'DockPanel',
+			clsName:'DockPanel',
 			s:{border:'1px outset',background:'#fffaf6',padding:'2px'},
 			borderSize:1, padding:2,
 			html:'This is Middle',
@@ -161,13 +111,14 @@ init:function(){
 			side:'M'
 		}]
 	};
-
-	inframe1.layout1=inframe1.run({n:'.put',vm:FX.vmodel1,dp:FX.dataProvider1});
-	//jsa.put(FX.vmodel1,FX.dataProvider1);
-	jsa.console.info('Success!');
-//	jsf.gridContainer.put(document.body,{t:'div',width:100,position:'absolute',top:50,left:200,backgroundColor:'#e0e0f0',height:200,html:'<b>theHtmlTextInside</b>',_:[{t:'ul',html:'hello!',a:{type:'circle'}}]});
-
-
+	inframe1.layout1=inframe1.run({n:'.put',vm:FX.vmodel1,dp:FX.dataProvider1,next:{
+        f:function(){
+            alert(1);
+            inframe1.ownedObjects['inframe1Menu'].element.innerHTML="111";
+            }
+        }});
+    
+    
 },
 putText:function(s,targetContainer){
   if (!s)return;
@@ -186,15 +137,9 @@ loadAllFolders:function(){
 	FX.initParamsFromInput();
 	debugger;
 	FX.loadDirList(FX.flashInbox,1);
-	FX.loadDirList(FX.flashOutbox,1);
 	FX.loadDirList(FX.serverInbox,1);
-	FX.loadDirList(FX.serverOutbox,1);
-
 	FX.displayListToDiv(FX.flashInbox,document.getElementById('folderFlashInbox'));
-	FX.displayListToDiv(FX.flashOutbox,document.getElementById('folderFlashOutbox'));
 	FX.displayListToDiv(FX.serverInbox,document.getElementById('folderServerInbox'));
-	FX.displayListToDiv(FX.serverOutbox,document.getElementById('folderServerOutbox'));
-	debugger;
 },
 displayListToDiv:function(aFolderData,targetDiv){
 	var e,v;
@@ -207,10 +152,7 @@ displayListToDiv:function(aFolderData,targetDiv){
 },
 initParamsFromInput:function(){
 	FX.flashInbox.path=document.getElementById('pathFlashInbox').value;
-	FX.serverOutbox.path=document.getElementById('pathServerOutbox').value;
-	FX.flashOutbox.path=document.getElementById('pathFlashOutbox').value;
 	FX.serverInbox.path=document.getElementById('pathServerInbox').value;
-
 }
 
 
@@ -260,8 +202,8 @@ recursiveFolder:function(oFld,subFolder,callbackFolder,callbackFile,isRecursive)
 };
 
 
-// TODO: Make subscription instead watching
 /** @type jsa.Frame */
+
 var inframe1;
 var jsat = setInterval(function () {
 	jsa = window.top.jsa;
@@ -280,10 +222,5 @@ var jsat = setInterval(function () {
 	}
 }, 1000);
 </script>
-
-
-<br/><br/><br/>
-<a href='javascript:startLogDemo()'>Start demo</a> | <a href='javascript:stopLogDemo()'>Stop demo</a>
-
 </body>
 </html>

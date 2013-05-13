@@ -298,6 +298,9 @@ var jsa={
 						r = (act.f)(act);
 					//}catch(e){window.status='Error in action '+e.message;}
 					if (r != 'continue'){
+						if (!!act.next){
+							jsa.run(act.next,r); // передаю аргументом то, что получил до этого
+						}
 						eliminate.push(act);
 					}
 				}
@@ -315,6 +318,9 @@ var jsa={
 				if (typeof(act.f) == 'function') {
 					r = (act.f)(act);
 					if (r != 'continue') {
+						if (!!act.next){
+							jsa.run(act.next,r); // передаю аргументом то, что получил до этого
+						}
 						eliminate.push(act);
 					}
 				}
@@ -357,7 +363,7 @@ var jsa={
 	*       timer. Be aware from multiple stages
 	* @this {jsa}
 	*/
-	run : function (act) {
+	run : function (act,prevRunResult) {
 		var ac,an,f=act.f,s;
 		if (act.start !== undefined) {
 			act._startTime = jsa.time + act.start;
@@ -509,7 +515,7 @@ var jsa={
 	},
 	eventPublisher:function(e){
 		var t=e.type, el=srcel=(e.target||e.srcElement),id=el.getAttribute('jsa_id');
-		while ((id==null)&&(el.nodeName!='BODY')){
+		while ((id==null)&&(el.nodeName!='BODY')&&(el.nodeName!='HTML')){
 			el=el.parentElement;
 			id=el.getAttribute('jsa_id');
 		}
@@ -711,7 +717,6 @@ if(CREATE_CONSOLE) {
 				if(typeof args[i]=='object'){
 					v.push(this.dump(args[i]));
 				} else if (args[i]==undefined) {
-					debugger;
 					v.push('undefined');
 				} else {
 				v.push(args[i].toString());
@@ -836,7 +841,7 @@ if (!COMPILED) {
 jsa.actionByCode[jsa.c.ACTION_JSA_PUT] =
 jsa.actionByName['.put']=
 jsa.put=function(a) {
-	var ctrl,vm,cls='',classDef,nothing=false;
+	var ctrl,vm,clsName='',classDef,nothing=false;
 	vm=a.vm;
 	if(!a.owner) {
 		a.owner=a.jsf;
@@ -847,14 +852,14 @@ jsa.put=function(a) {
 		}
 		return nothing;
 	}
-	cls=a.vm.ctrl;
-	if(!cls){
+	clsName=a.vm.clsName;
+	if(!clsName){
 		if (DEBUG){
-			jsa.console.error('Cannot put control without .ctrl field set in ViewModel');
+			jsa.console.error('Cannot put control without .clsName field set in ViewModel');
 		}
 		return nothing;
 	}
-	classDef=jsa[cls];
+	classDef=jsa[clsName];
 	if(!!classDef){
 		ctrl=new (classDef)();
 		ctrl.put(a,1); // is first=1
@@ -915,7 +920,7 @@ jsa.put=function(a) {
 	put:function(a,isFirst) {
 		var me=this, viewModel=a.vm, htmlTag, element, doc, parentCtrl=a.target, s, j;
 		if(!a.jsf){
-			jsa.console.info('jsa.Control({}) without jsf');
+			jsa.console.info('jsa.Control.put({}) without jsf');
 		}
 		htmlTag=viewModel.tag||'div';
 		me.jsf=a.jsf;
@@ -924,12 +929,13 @@ jsa.put=function(a) {
 		me.x=a.x||0;
 		me.y=a.y||0;
 		me.isVisible=a.isVisible||true;
-		me.id=jsa.getUID(this.clsName);
+		me.id=me.id||jsa.getUID(me.clsName);
 		me.element.setAttribute('id',me.id);
 		me.element.setAttribute('jsa_id',me.id);
 		
 		if(!!a.owner) {
 			a.owner.ownedObjects[me.id]=me;
+			
 		}else{
 			if(DEBUG){
 				jsa.console.warn("Created "+(me.clsName)+" without reference to owner. It means memory leaks");
@@ -965,8 +971,6 @@ jsa.put=function(a) {
 		if((!parentCtrl)&&(!a.he)){
 			me.topHtmlContainer=(doc.compatMode=='CSS1Compat')?doc.documentElement:doc.body;
 		}        
-	jsa.console.log('.Control.put called')
-	
 	}
 	
 };
@@ -991,7 +995,7 @@ jsa.Splitter.prototype.put=function(a){
 	this.parentCtrl.element.appendChild(this.element);
 };
 jsa.Splitter.prototype.mousedown=function(e){
-	jsa.console.log('Splitter mouse down');
+	jsa.console.log('Splitter mouse down');	
 };
 jsa.Splitter.prototype.mouseup=function(e){
 	jsa.console.log('Splitter mouse up');
@@ -1014,7 +1018,7 @@ jsa.c.SPLITTER_MODE_RESIZE_DOCK=2;
 (jsa.DockPanel=function(){}).prototype = new jsa.Control();
 jsa.DockPanel.prototype.superClass=jsa.Control.prototype;
 
-jsa.DockPanel.prototype.put=function(a,isFirst) {
+jsa.DockPanel.prototype.put=function(a,doArrangeAfterPut) {
 	// viewModel is a JSON template. {t:'div',width:100,position:'absolute',height:200,idp:'idprefix',before:"evalCodeBeforeChild",_:[t:'ul',a:{type:'circle'}],after:"evalCodeAfterCreate"}
 	var me=this,viewModel=a.vm,
 		dataProvider=a.dp,htmlContainer=a.he,parentCtrl=a.target,kc,
@@ -1032,9 +1036,10 @@ jsa.DockPanel.prototype.put=function(a,isFirst) {
 			jsa.put({owner:a.jsf, jsf:a.jsf, vm:kc, dp:dataProvider, he:element, target:me});
 			}
 		}
+
 	if (!!parentCtrl){
 		parentCtrl.kids.push(me);
-		if (isFirst) {
+		if (doArrangeAfterPut) {
 			parentCtrl.arrangeKids();
 		}
 	}
@@ -1042,9 +1047,10 @@ jsa.DockPanel.prototype.put=function(a,isFirst) {
 		htmlContainer.appendChild(element);
 	}else{
 		doc.body.appendChild(element);
+		me.setPosSizeVisible();
 		jsa.on(a.jsf.win,'resize', function() {
 			me.size();
-			me.aid=this.uid+'_parentResized';
+			me.aid=me.uid+'_parentResized';
 			me.setPosSizeVisible();
 			me.arrangeKids();
 		});
@@ -1306,3 +1312,4 @@ jsa.DockPanel.prototype.arrangeKids=function(){
 jsa.DockPanel.prototype.anchor=function(id){
 	return "[["+id+"_"+jsa.getUID()+"]]";
 };
+1136  -8
